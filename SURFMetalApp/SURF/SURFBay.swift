@@ -8,19 +8,14 @@
 import Foundation
 import CoreGraphics
 
-
-struct SURFDescriptor {
-    var features: [Float]
-}
-
-
+#if false
 
 ///
 /// Port of the SURF method by Herbert Bay et al.
 ///
 /// See: https://github.com/herbertbay/SURF
 ///
-final class SURFCPU {
+final class SURFBay {
     
     init() {
     }
@@ -35,9 +30,28 @@ final class SURFCPU {
         let pixelImage = PixelImage(inputImage)
         let integralImage = IntegralImage(pixelImage)
         
+        let hessian = FastHessian(
+            integralImage: integralImage,
+            configuration: FastHessian.Configuration()
+        )
+        let points = hessian.getInterestPoints()
+        print("found points", points.count)
+        print(points)
         
+        var descriptors: [SURFDescriptor] = []
         
-        var output: [SURFDescriptor] = []
-        return output
+        for point in points {
+            let descriptor = SURFDescriptor(
+                x: point.x,
+                y: point.y,
+                scale: point.scale,
+                descriptor: []
+            )
+            descriptors.append(descriptor)
+        }
+        
+        return descriptors
     }
 }
+
+#endif 
