@@ -127,9 +127,6 @@ final class SURFIPOL {
         var nxy: Float
         var nxx: Float
         
-        var octaveKeypointCount: Int
-        var intervalKeypointCount: Int
-        
         // For loop on octave
         for octaveCounter in 0 ..< OCTAVE {
             
@@ -143,7 +140,6 @@ final class SURFIPOL {
 
             #warning("TODO: Use 1 << (octaveCounter + 1)")
             pow2 = Int(pow(2, Float(octaveCounter + 1)))
-            
 
             logger.debug("getCandidatKeypoints: Octave=\(octaveCounter) Width=\(w) Height=\(h)")
 
@@ -183,17 +179,21 @@ final class SURFIPOL {
                         Dxy /= nxy
                         
                         // Computation of the Hessian and Laplacian
-                        octave.hessian[intervalCounter][x, y] = (Dxx * Dyy - 0.8317 * (Dxy * Dxy))
-                        octave.signLaplacian[intervalCounter][x, y] = Dxx + Dyy > 0 ? 1 : 0
+//                        let w: Float = 0.9129
+                        let w: Float = 0.8317
+                        octave.hessian[intervalCounter][x, y] = (Dxx * Dyy - w * (Dxy * Dxy))
+                        octave.signLaplacian[intervalCounter][x, y] = (Dxx + Dyy) > 0 ? 1 : 0
                     }
                 }
             }
             
+            #warning("TODO: Separate hessian computation from keypoint detection")
+            
             // Find keypoints
             logger.info("getCandidatKeypoints: octave=\(octaveCounter): Finding keypoints")
-            var x_: Float
-            var y_: Float
-            var s_: Float
+//            var x_: Float
+//            var y_: Float
+//            var s_: Float
             
             // Detect keypoints
             var octaveKeypointCount = 0
@@ -210,26 +210,32 @@ final class SURFIPOL {
                             continue
                         }
                         
-                        x_ = Float(x * sample)
-                        y_ = Float(y * sample)
-                        s_ = 0.4 * Float(pow2 * (intervalCounter + 1) + 2) // box size or scale
-                        let laplacian = octave.signLaplacian[intervalCounter][x, y] >= 0 ? 1 : -1
-                        
-                        let keypoint = Keypoint(
-                            x: x_,
-                            y: y_,
-                            scale: s_,
-                            strength: 0,
-                            orientation: 0,
-                            laplacian: laplacian,
-                            ivec: []
+//                        let keypoint = Keypoint(
+//                            x: Float(x * sample),
+//                            y: Float(y * sample),
+//                            scale: 0.4 * Float(pow2 * (intervalCounter + 1) + 2), // box size or scale,
+//                            strength: 0,
+//                            orientation: 0,
+//                            laplacian: Int(octave.signLaplacian[intervalCounter][x, y]),
+//                            ivec: []
+//                        )
+
+                        // Affine refinement is performed for a given octave and sampling
+                        let keypoint = interpolationScaleSpace(
+                            octave: octaveCounter,
+                            interval: intervalCounter,
+                            x: x,
+                            y: y,
+                            sample: sample,
+                            pow2: pow2
                         )
+                        
+                        guard let keypoint else {
+                            continue
+                        }
+
                         keypoints.append(keypoint)
                         intervalKeypointCount += 1
-                            // Affine refinement is performed for a given octave and sampling
-//                            if (interpolationScaleSpace(hessian, x, y, intervalCounter, x_, y_, s_, sample,pow2)) {
-//                                addKeypoint(imgInt, x_, y_, (*(signLaplacian[intervalCounter]))(x,y),s_, lKP);
-//                            }
                     }
                 }
                 
@@ -250,7 +256,7 @@ final class SURFIPOL {
     private func isMaximum(imageStamp: [Field], x: Int, y: Int, scale: Int, threshold: Float) -> Bool {
         let tmp = imageStamp[scale][x, y]
         
-        guard (tmp > threshold) else {
+        guard tmp > threshold else {
             return false
         }
         
@@ -270,8 +276,65 @@ final class SURFIPOL {
         }
         return true
     }
+    
+    // Scale space interpolation as described in Lowe
+    private func interpolationScaleSpace(octave o: Int, interval i: Int, x: Int, y: Int, sample: Int, pow2 octaveValue: Int) -> Keypoint? {
+        
+//        let sample = Int(pow(Float(SAMPLE_IMAGE), Float(keypoint.octave))) // Sampling step
+        let img = octaves[o].hessian
 
-//    func refineInterestPoints(_ points: [InterestPoint]) -> [InterestPoint] {
-//
-//    }
+        //If we are outside the image...
+        if x <= 0 || y <= 0 || x >= (img[i].width - 2) || y >= (img[i].height - 2) {
+            return nil
+        }
+        
+        // Nabla X
+        let dx = (img[i][x + 1, y] - img[i][x - 1, y]) / 2
+        let dy = (img[i][x, y + 1] - img[i][x, y - 1]) / 2
+        let di = (img[i][x, y] - img[i][x, y]) / 2
+        #warning("FIXME: Compute gradient in i")
+//                let di = (img[i + 1][x, y] - img[i - 1][x, y]) / 2 // Proposed by ChatGPT
+        
+        //Hessian X
+        let a = img[i][x, y]
+        let dxx = (img[i][x + 1, y] + img[i][x - 1, y]) - 2 * a
+        let dyy = (img[i][x, y + 1] + img[i][x, y + 1]) - 2 * a
+        let dii = (img[i - 1][x, y] + img[i + 1][x, y]) - 2 * a
+        
+        let dxy = (img[i][x + 1, y + 1] - img[i][x + 1, y - 1] - img[i][x - 1, y + 1] + img[i][x - 1, y - 1]) / 4
+        let dxi = (img[i + 1][x + 1, y] - img[i + 1][x - 1, y] - img[i - 1][x + 1, y] + img[i - 1][x - 1, y]) / 4
+        let dyi = (img[i + 1][x, y + 1] - img[i + 1][x, y - 1] - img[i - 1][x, y + 1] + img[i - 1][x, y - 1]) / 4
+        
+        // Det
+        let det = dxx * dyy * dii - dxx * dyi * dyi - dyy * dxi * dxi + 2 * dxi * dyi * dxy - dii * dxy * dxy
+
+        if det == 0 {
+            // Matrix must be inversible - maybe useless.
+            return nil
+        }
+        
+        let mx = -1 / det * (dx * (dyy * dii - dyi * dyi) + dy * (dxi * dyi - dii * dxy) + di * (dxy * dyi - dyy * dxi))
+        let my = -1 / det * (dx * (dxi * dyi - dii * dxy) + dy * (dxx * dii - dxi * dxi) + di * (dxy * dxi - dxx * dyi))
+        let mi = -1 / det * (dx * (dxy * dyi - dyy * dxi) + dy * (dxy * dxi - dxx * dyi) + di * (dxx * dyy - dxy * dxy))
+
+        // If the point is stable
+        guard abs(mx) < 1 && abs(my) < 1 && abs(mi) < 1 else {
+            return nil
+        }
+        
+        let x_ = Float(sample) * (Float(x) + mx) + 0.5 // Center the pixels value
+        let y_ = Float(sample) * (Float(y) + my) + 0.5
+        let s_ = 0.4 * (1 + Float(octaveValue) * (Float(i) + mi + 1))
+        let signLaplacian = octaves[o].signLaplacian[i][x, y]
+        
+        return Keypoint(
+            x: x_,
+            y: y_,
+            scale: s_,
+            strength: 0,
+            orientation: 0,
+            laplacian: Int(signLaplacian),
+            ivec: []
+        )
+    }
 }

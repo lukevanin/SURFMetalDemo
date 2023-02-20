@@ -15,7 +15,7 @@ struct SURFMetalApp: App {
 //    private let sourceImage = loadImage(named: "waterfall")
     private let surf = SURFIPOL(width: 1024, height: 1024)
     private let sourceImage = Bitmap(cgImage: loadImage(named: "lena")).normalized()
-    //    private let surfFile = try! SURFFile(contentsOf: Bundle.main.url(forResource: "img", withExtension: "surf")!)
+    private let surfFile = try! IPOLSURFFile(contentsOf: Bundle.main.url(forResource: "lena", withExtension: "surf")!)
 
     var body: some Scene {
         WindowGroup {
@@ -37,10 +37,11 @@ struct SURFMetalApp: App {
             SURFCompareView(
                 image: sourceImage.cgImage(),
                 sourceFeatures: surf.getCandidatKeypoints(image: sourceImage),
-//                targetFeatures: surfFile.contents.map {
-//                    Keypoint(x: $0.x, y: $0.y, scale: $0.scale, strength: 0, orientation: 0, laplacian: 0, ivec: [])
-//                },
-                targetFeatures: [],
+//                sourceFeatures: [],
+                targetFeatures: surfFile.contents.map {
+                    Keypoint(x: $0.x, y: $0.y, scale: $0.scale, strength: 0, orientation: 0, laplacian: 0, ivec: [])
+                },
+//                targetFeatures: [],
                 zoom: 2.0
             )
         }

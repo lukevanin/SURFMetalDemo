@@ -38,7 +38,8 @@ struct SURFFeaturesView: View {
                 path.addLine(to: CGPoint(x: bounds.maxX, y: bounds.midY))
             }
         }
-        .stroke(color.opacity(0.6), lineWidth: 1.0)
+        .stroke(color.opacity(0.8), lineWidth: 2.0)
+        .blendMode(.plusLighter)
     }
 }
 
@@ -61,10 +62,10 @@ struct SURFCompareView: View {
                     .fill(.black.opacity(0.5))
                     .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
                 
-                SURFFeaturesView(features: targetFeatures, zoom: zoom, color: .yellow)
+                SURFFeaturesView(features: targetFeatures, zoom: zoom, color: .green)
                     .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
                 
-                SURFFeaturesView(features: sourceFeatures, zoom: zoom, color: .cyan)
+                SURFFeaturesView(features: sourceFeatures, zoom: zoom, color: .red)
                     .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
             }
             .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)

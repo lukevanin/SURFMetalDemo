@@ -34,7 +34,7 @@ private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: 
 ///     Int: Laplacian (optional)
 ///     Float[64]: Descriptor
 ///
-final class SURFFile {
+final class BaySURFFile {
     
     struct PointOfInterest {
         let x: Float

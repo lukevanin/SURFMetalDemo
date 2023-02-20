@@ -132,7 +132,7 @@ final class Bitmap {
 
 extension Bitmap {
     
-    private static let colorSpace = CGColorSpace(name: CGColorSpace.linearGray)!
+    private static let colorSpace = CGColorSpace(name: CGColorSpace.genericGrayGamma2_2)!
     private static let bitmapInfo: CGBitmapInfo = []
     private static let alphaInfo: CGImageAlphaInfo = .none
     

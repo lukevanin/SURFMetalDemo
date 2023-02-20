@@ -59,45 +59,45 @@ final class IntegralImage {
         }
     }
     
-    @inlinable func getSum(_ x1: Int, _ y1: Int, _ x2: Int, _ y2: Int) -> Element {
-        return self[x1 + 1, y1 + 1] + self[x2, y2] - self[x1 + 1, y2] - self[x2, y1 + 1]
-    }
+//    @inlinable func getSum(_ x1: Int, _ y1: Int, _ x2: Int, _ y2: Int) -> Element {
+//        return self[x1 + 1, y1 + 1] + self[x2, y2] - self[x1 + 1, y2] - self[x2, y1 + 1]
+//    }
 
-    @inlinable func getHessian(_ x: [Int]) -> Float {
-        /* Get second order derivatives */
-        let Lxx = Float(
-            getSum(x[5] + x[2], x[1] + x[3], x[6] - x[2], x[1] - x[3]) -
-            getSum(x[0] + x[2], x[1] + x[3], x[0] - x[2], x[1] - x[3]) * 3
-        )
-        
-        let Lyy = Float(
-            getSum(x[0] + x[3], x[7] + x[2], x[0] - x[3], x[8] - x[2]) -
-            getSum(x[0] + x[3], x[1] + x[2], x[0] - x[3], x[1] - x[2]) * 3
-        )
-        
-        let Lxy = Float(
-            getSum(x[0] + x[4], x[1], x[0], x[1] - x[4]) +
-            getSum(x[0], x[1] + x[4], x[0] - x[4], x[1]) -
-            getSum(x[0] + x[4], x[1] + x[4], x[0], x[1]) -
-            getSum(x[0], x[1], x[0] - x[4], x[1] - x[4])
-        ) * 0.6
-        
-        return Lxx * Lyy - Lxy * Lxy;
-    }
+//    @inlinable func getHessian(_ x: [Int]) -> Float {
+//        /* Get second order derivatives */
+//        let Lxx = Float(
+//            getSum(x[5] + x[2], x[1] + x[3], x[6] - x[2], x[1] - x[3]) -
+//            getSum(x[0] + x[2], x[1] + x[3], x[0] - x[2], x[1] - x[3]) * 3
+//        )
+//
+//        let Lyy = Float(
+//            getSum(x[0] + x[3], x[7] + x[2], x[0] - x[3], x[8] - x[2]) -
+//            getSum(x[0] + x[3], x[1] + x[2], x[0] - x[3], x[1] - x[2]) * 3
+//        )
+//
+//        let Lxy = Float(
+//            getSum(x[0] + x[4], x[1], x[0], x[1] - x[4]) +
+//            getSum(x[0], x[1] + x[4], x[0] - x[4], x[1]) -
+//            getSum(x[0] + x[4], x[1] + x[4], x[0], x[1]) -
+//            getSum(x[0], x[1], x[0] - x[4], x[1] - x[4])
+//        ) * 0.6
+//
+//        return Lxx * Lyy - Lxy * Lxy;
+//    }
     
     // Get the Hessian trace response
-    @inlinable func getTrace(_ x: [Int]) -> Int {
-        /* Get second order derivatives */
-        let Lxx = (
-            getSum(x[5] + x[2], x[1] + x[3], x[6] - x[2], x[1] - x[3]) -
-            getSum(x[0] + x[2], x[1] + x[3], x[0] - x[2], x[1] - x[3]) * 3
-        )
-        let Lyy = (
-            getSum(x[0] + x[3], x[7] + x[2], x[0] - x[3], x[8] - x[2]) -
-            getSum(x[0] + x[3], x[1] + x[2], x[0] - x[3], x[1] - x[2]) * 3
-        )
-        return (Lxx + Lyy > 0 ? 1 : -1)
-    }
+//    @inlinable func getTrace(_ x: [Int]) -> Int {
+//        /* Get second order derivatives */
+//        let Lxx = (
+//            getSum(x[5] + x[2], x[1] + x[3], x[6] - x[2], x[1] - x[3]) -
+//            getSum(x[0] + x[2], x[1] + x[3], x[0] - x[2], x[1] - x[3]) * 3
+//        )
+//        let Lyy = (
+//            getSum(x[0] + x[3], x[7] + x[2], x[0] - x[3], x[8] - x[2]) -
+//            getSum(x[0] + x[3], x[1] + x[2], x[0] - x[3], x[1] - x[2]) * 3
+//        )
+//        return (Lxx + Lyy > 0 ? 1 : -1)
+//    }
     
     // Convolution by a square defined by the bottom-left (a,b) and top-right (c,d)
     @inlinable func squareConvolutionXY(a: Int, b: Int, c: Int, d: Int, x: Int, y: Int) -> Int {
