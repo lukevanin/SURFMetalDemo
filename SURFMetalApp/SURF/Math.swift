@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import simd
 
 
 // Round-off functions
@@ -16,6 +17,69 @@ import Foundation
 //@inlinable func fround(_ flt: Float) -> Int {
 //    return Int(flt + 0.5)
 //}
+
+
+///
+/// Creates a 2D affine rotation matrix.
+///
+/// Used to rotate a 2D homogeneous coordinate.
+///
+/// ```
+/// let m = makeRotationMatrix(angle: .pi * 0.5) // 90 degrees
+/// let v = m * SIMD3(x: 5, y: 8, z: 1)
+/// ```
+///
+/// https://developer.apple.com/documentation/accelerate/working_with_matrices
+///
+/// - Parameter angle: The angle of rotation in radians.
+///
+func makeRotationMatrix(angle: Float) -> float3x3 {
+    let rows: [SIMD3<Float>] = [
+        SIMD3(cos(angle), -sin(angle), 0),
+        SIMD3(sin(angle), cos(angle), 0),
+        SIMD3(0,          0,          1)
+    ]
+    return float3x3(rows: rows)
+}
+
+
+///
+/// Creates a 2D translation matrix.
+///
+/// Used to translate a 2D homogeneous coordinate.
+///
+/// ```
+/// let m = makeTranslationMatrix(x: 10, y: 15)
+/// let v = m * SIMD3(x: 5, y: 8, z: 1)
+/// ```
+///
+/// https://developer.apple.com/documentation/accelerate/working_with_matrices
+///
+/// - Parameter x: Translation on the x axis.
+/// - Parameter y: Translation on the y axis.
+///
+func makeTranslationMatrix(x: Float, y: Float) -> float3x3 {
+    var matrix = matrix_identity_float3x3
+    matrix[2, 0] = x
+    matrix[2, 1] = y
+    return matrix
+}
+
+
+///
+/// Creates a 2D scale matrix.
+///
+/// Used to scale a 2D homogeneous coordinate.
+///
+func makeScaleMatrix(scale: Float) -> float3x3 {
+    let rows = [
+        simd_float3(scale,      0, 0),
+        simd_float3(     0, scale, 0),
+        simd_float3(     0,      0, 1)
+    ]
+    
+    return float3x3(rows: rows)
+}
 
 
 // Return dot product of two vectors with given length

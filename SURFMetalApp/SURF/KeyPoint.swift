@@ -24,7 +24,4 @@ struct Keypoint {
     
     // sign of Laplacian
     var laplacian: Int
-    
-    // descriptor
-    var ivec: [Float]
 }

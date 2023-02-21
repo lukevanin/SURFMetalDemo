@@ -93,14 +93,14 @@ final class SURFIPOL {
         self.octaves = octaves
     }
         
-    func getCandidatKeypoints(image: Bitmap, threshold: Float = 1000) -> [Keypoint] {
+    func getKeypoints(image: Bitmap, threshold: Float = 1000) -> [Descriptor] {
         var keypoints: [Keypoint] = []
         
         // Compute the integral image
         let padding = 312 // size descriptor * max size L = 4*0.4*195;
-        logger.info("getCandidatKeypoints: Creating integral image: width=\(image.width) height=\(image.height) padding=\(padding)")
+        logger.info("getKeypoints: Creating integral image: width=\(image.width) height=\(image.height) padding=\(padding)")
         let integralImage = IntegralImage(image: image, padding: padding)
-        logger.info("getCandidatKeypoints: Integral image: width=\(integralImage.paddedWidth) height=\(integralImage.paddedHeight) padding=\(integralImage.padding)")
+        logger.info("getKeypoints: Integral image: width=\(integralImage.paddedWidth) height=\(integralImage.paddedHeight) padding=\(integralImage.padding)")
 
         // Array of each Hessians and of each sign of the Laplacian
 
@@ -141,11 +141,11 @@ final class SURFIPOL {
             #warning("TODO: Use 1 << (octaveCounter + 1)")
             pow2 = Int(pow(2, Float(octaveCounter + 1)))
 
-            logger.debug("getCandidatKeypoints: Octave=\(octaveCounter) Width=\(w) Height=\(h)")
+            logger.debug("getKeypoints: Octave=\(octaveCounter) Width=\(w) Height=\(h)")
 
             // Compute Hessian and sign of Laplacian
             // For loop on intervals
-            logger.info("getCandidatKeypoints: Octave=\(octaveCounter) Computing Hessian")
+            logger.info("getKeypoints: Octave=\(octaveCounter) Computing Hessian")
             for intervalCounter in 0 ..< INTERVAL {
                 l = pow2 * (intervalCounter + 1) + 1 // the "L" in the article.
 
@@ -190,7 +190,7 @@ final class SURFIPOL {
             #warning("TODO: Separate hessian computation from keypoint detection")
             
             // Find keypoints
-            logger.info("getCandidatKeypoints: octave=\(octaveCounter): Finding keypoints")
+            logger.info("getKeypoints: octave=\(octaveCounter): Finding keypoints")
 //            var x_: Float
 //            var y_: Float
 //            var s_: Float
@@ -200,7 +200,7 @@ final class SURFIPOL {
             
             for intervalCounter in 1 ..< INTERVAL - 1 {
                 var intervalKeypointCount = 0
-                logger.info("getCandidatKeypoints: octave=\(octaveCounter): interval=\(intervalCounter): Finding keypoints")
+                logger.info("getKeypoints: octave=\(octaveCounter): interval=\(intervalCounter): Finding keypoints")
 
                 l = (pow2 * (intervalCounter + 1) + 1)
                 // border points are removed
@@ -222,6 +222,7 @@ final class SURFIPOL {
 
                         // Affine refinement is performed for a given octave and sampling
                         let keypoint = interpolationScaleSpace(
+                            integralImage: integralImage,
                             octave: octaveCounter,
                             interval: intervalCounter,
                             x: x,
@@ -240,15 +241,15 @@ final class SURFIPOL {
                 }
                 
                 octaveKeypointCount += intervalKeypointCount
-                logger.info("getCandidatKeypoints: octave=\(octaveCounter): interval=\(intervalCounter): Found \(intervalKeypointCount) keypoints for interval")
+                logger.info("getKeypoints: octave=\(octaveCounter): interval=\(intervalCounter): Found \(intervalKeypointCount) keypoints for interval")
             }
         
-            logger.info("getCandidatKeypoints: octave=\(octaveCounter): Found \(octaveKeypointCount) keypoints for octave")
+            logger.info("getKeypoints: octave=\(octaveCounter): Found \(octaveKeypointCount) keypoints for octave")
         }
         
         // Compute the descriptors
-        logger.info("getCandidatKeypoints: Found \(keypoints.count) total keypoints")
-        return keypoints
+        logger.info("getKeypoints: Found \(keypoints.count) total keypoints")
+        return getDescriptors(integralImage: integralImage, keypoints: keypoints)
     }
     
     
@@ -278,7 +279,7 @@ final class SURFIPOL {
     }
     
     // Scale space interpolation as described in Lowe
-    private func interpolationScaleSpace(octave o: Int, interval i: Int, x: Int, y: Int, sample: Int, pow2 octaveValue: Int) -> Keypoint? {
+    private func interpolationScaleSpace(integralImage: IntegralImage, octave o: Int, interval i: Int, x: Int, y: Int, sample: Int, pow2 octaveValue: Int) -> Keypoint? {
         
 //        let sample = Int(pow(Float(SAMPLE_IMAGE), Float(keypoint.octave))) // Sampling step
         let img = octaves[o].hessian
@@ -325,6 +326,7 @@ final class SURFIPOL {
         let x_ = Float(sample) * (Float(x) + mx) + 0.5 // Center the pixels value
         let y_ = Float(sample) * (Float(y) + my) + 0.5
         let s_ = 0.4 * (1 + Float(octaveValue) * (Float(i) + mi + 1))
+        let orientation = getOrientation(integralImage: integralImage, x: x_, y: y_, scale: s_)
         let signLaplacian = octaves[o].signLaplacian[i][x, y]
         
         return Keypoint(
@@ -332,9 +334,99 @@ final class SURFIPOL {
             y: y_,
             scale: s_,
             strength: 0,
-            orientation: 0,
-            laplacian: Int(signLaplacian),
-            ivec: []
+            orientation: orientation,
+            laplacian: Int(signLaplacian)
         )
+    }
+    
+    private func getOrientation(integralImage: IntegralImage, x: Float, y: Float, scale: Float) -> Float {
+        let sectors = NUMBER_SECTOR
+        
+        #warning("TODO: Pre-allocate and reuse arrays")
+        var haarResponseX: [Float] = Array(repeating: 0, count: sectors)
+        var haarResponseY: [Float] = Array(repeating: 0, count: sectors)
+        var haarResponseSectorX: [Float] = Array(repeating: 0, count: sectors)
+        var haarResponseSectorY: [Float] = Array(repeating: 0, count: sectors)
+        var answerX: Int
+        var answerY: Int
+        var gauss: Float
+        
+        var theta: Int
+        
+        // Computation of the contribution of each angular sectors.
+        for i in -6 ... 6 {
+            for j in -6 ... 6 {
+                
+                if (i * i + j * j) <= 36 {
+                    
+                    answerX = integralImage.haarX(
+                        x: Int(Float(x) + scale * Float(i)),
+                        y: Int(Float(y) + scale * Float(j)),
+                        lambda: fround(2 * scale)
+                    )
+                    answerY = integralImage.haarY(
+                        x: Int(Float(x) + scale * Float(i)),
+                        y: Int(Float(y) + scale * Float(j)),
+                        lambda: fround(2 * scale)
+                    )
+                    
+                    // Associated angle
+                    theta = Int(atan2(Float(answerY), Float(answerX)) * Float(sectors) / (2 * pi))
+                    theta = ((theta >= 0) ? (theta) : (theta + sectors))
+                    
+                    // Gaussian weight
+                    gauss = gaussian(x: Float(i), y: Float(j), sig: 2)
+                    
+                    // Cumulative answers
+                    haarResponseSectorX[theta] += Float(answerX) * gauss
+                    haarResponseSectorY[theta] += Float(answerY) * gauss
+                }
+            }
+        }
+
+        // Compute a windowed answer
+        for i in 0 ..< sectors {
+            for j in -sectors / 12 ... sectors / 12 {
+                if 0 <= i + j && i + j < sectors {
+                    haarResponseX[i] += haarResponseSectorX[i + j]
+                    haarResponseY[i] += haarResponseSectorY[i + j]
+                }
+                else if i + j < 0 {
+                    // The answer can be on any quadrant of the unit circle
+                    haarResponseX[i] += haarResponseSectorX[sectors + i + j]
+                    haarResponseY[i] += haarResponseSectorY[i + j + sectors]
+                }
+                else {
+                    haarResponseX[i] += haarResponseSectorX[i + j - sectors]
+                    haarResponseY[i] += haarResponseSectorY[i + j - sectors]
+                }
+            }
+        }
+                
+        // Find out the maximum answer
+        var max = haarResponseX[0] * haarResponseX[0] + haarResponseY[0] * haarResponseY[0]
+        
+        var t = 0
+        for i in 1 ..< sectors {
+            let norm = haarResponseX[i] * haarResponseX[i] + haarResponseY[i] * haarResponseY[i]
+            t = (max < norm) ? i : t
+            max = (max < norm) ? norm : max
+        }
+
+        // Return the angle ; better than atan which is not defined in pi/2
+        return atan2(haarResponseY[t], haarResponseX[t])
+    }
+    
+    private func getDescriptors(integralImage: IntegralImage, keypoints: [Keypoint]) -> [Descriptor] {
+        var descriptors: [Descriptor] = []
+        for keypoint in keypoints {
+            let descriptor = makeDescriptor(integralImage: integralImage, keypoint: keypoint)
+            descriptors.append(descriptor)
+        }
+        return descriptors
+    }
+    
+    private func makeDescriptor(integralImage: IntegralImage, keypoint: Keypoint) -> Descriptor {
+        return Descriptor(keypoint: keypoint, vector: [])
     }
 }

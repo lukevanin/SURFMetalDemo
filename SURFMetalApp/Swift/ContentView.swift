@@ -7,6 +7,7 @@
 
 import SwiftUI
 import CoreGraphics
+import simd
 
 func loadImage(named name: String) -> CGImage {
     let fileURL = Bundle.main.urlForImageResource(name)!
@@ -16,30 +17,47 @@ func loadImage(named name: String) -> CGImage {
 }
 
 
+struct KeypointViewModel {
+    var x: Float
+    var y: Float
+    var scale: Float
+    var orientation: Float
+}
+
+
 struct SURFFeaturesView: View {
     
-    @State var features: [Keypoint]
+    @State var features: [KeypointViewModel]
     @State var zoom: CGFloat
     @State var color: Color
     
     var body: some View {
         Path { path in
             for feature in features {
-                let bounds = CGRect(
-                    x: CGFloat(feature.x - feature.scale) * zoom,
-                    y: CGFloat(feature.y - feature.scale) * zoom,
-                    width: CGFloat(feature.scale * 2) * zoom,
-                    height: CGFloat(feature.scale * 2) * zoom
-                )
-                path.move(to: CGPoint(x: bounds.midX, y: bounds.minY))
-                path.addLine(to: CGPoint(x: bounds.midX, y: bounds.maxY))
                 
-                path.move(to: CGPoint(x: bounds.minX, y: bounds.midY))
-                path.addLine(to: CGPoint(x: bounds.maxX, y: bounds.midY))
+                let m = makeScaleMatrix(scale: Float(zoom)) * makeTranslationMatrix(x: feature.x, y: feature.y) * makeRotationMatrix(angle: feature.orientation)
+
+                let vMin = m * SIMD3(0, -feature.scale, 1)
+                let vMax = m * SIMD3(0, +feature.scale, 1)
+                
+                let hMin = m * SIMD3(-feature.scale, 0, 1)
+                let hMax = m * SIMD3(+feature.scale, 0, 1)
+                
+                path.move(to: CGPoint(vMin))
+                path.addLine(to: CGPoint(vMax))
+
+                path.move(to: CGPoint(vMin))
+                path.addLine(to: CGPoint(hMin))
+                
+                path.move(to: CGPoint(vMin))
+                path.addLine(to: CGPoint(hMax))
+
+//                path.move(to: CGPoint(hMin))
+//                path.addLine(to: CGPoint(hMax))
             }
         }
-        .stroke(color.opacity(0.8), lineWidth: 2.0)
-        .blendMode(.plusLighter)
+        .stroke(color, lineWidth: 1)
+        .drawingGroup()
     }
 }
 
@@ -47,8 +65,8 @@ struct SURFFeaturesView: View {
 struct SURFCompareView: View {
     
     let image: CGImage
-    let sourceFeatures: [Keypoint]
-    let targetFeatures: [Keypoint]
+    let sourceFeatures: [KeypointViewModel]
+    let targetFeatures: [KeypointViewModel]
     let zoom: CGFloat
     
     var body: some View {
@@ -57,16 +75,19 @@ struct SURFCompareView: View {
                 Image(image, scale: 1, label: Text("Sample"))
                     .resizable()
                     .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
+                    .brightness(-0.2)
                 
-                Rectangle()
-                    .fill(.black.opacity(0.5))
-                    .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
+//                Rectangle()
+//                    .fill(.black.opacity(0.5))
+//                    .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
                 
-                SURFFeaturesView(features: targetFeatures, zoom: zoom, color: .green)
+                SURFFeaturesView(features: targetFeatures, zoom: zoom, color: .cyan)
                     .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
+                    .blendMode(.plusLighter)
                 
                 SURFFeaturesView(features: sourceFeatures, zoom: zoom, color: .red)
                     .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
+                    .blendMode(.plusLighter)
             }
             .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
             .padding()

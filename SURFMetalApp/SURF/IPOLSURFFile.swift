@@ -18,6 +18,7 @@ final class IPOLSURFFile {
         let x: Float
         let y: Float
         let scale: Float
+        let orientation: Float
         let laplacian: Int
         let descriptor: [Float]
     }
@@ -44,24 +45,24 @@ final class IPOLSURFFile {
         
         for _ in 0 ..< numberOfPoints {
             let components = lines[i].split(separator: " ")
-            logger.debug("Line \(i): Components = \(components)")
+//            logger.debug("Line \(i): Components = \(components)")
             
             var j = 0
             
             let x = Float(components[j])!
-            logger.debug("Line \(i): Components \(j): x = \(x)")
+//            logger.debug("Line \(i): Components \(j): x = \(x)")
             j += 1
             
             let y = Float(components[j])!
-            logger.debug("Line \(i): Components \(j): y = \(y)")
+//            logger.debug("Line \(i): Components \(j): y = \(y)")
             j += 1
             
             let scale = Float(components[j])!
-            logger.debug("Line \(i): Components \(j): a = \(scale)")
+//            logger.debug("Line \(i): Components \(j): a = \(scale)")
             j += 1
             
             let orientation = Float(components[j])!
-            logger.debug("Line \(i): Components \(j): b = \(orientation)")
+//            logger.debug("Line \(i): Components \(j): b = \(orientation)")
             j += 1
             
             var descriptor = [Float]()
@@ -70,16 +71,17 @@ final class IPOLSURFFile {
                 descriptor.append(value)
                 j += 1
             }
-            logger.debug("Line \(i): Descriptor = \(descriptor)")
+//            logger.debug("Line \(i): Descriptor = \(descriptor)")
             
             let laplacian = Int(components[j])!
-            logger.debug("Line \(i): Components \(j): laplacian = \(laplacian)")
+//            logger.debug("Line \(i): Components \(j): laplacian = \(laplacian)")
             j += 1
             
             let pointOfInterest = PointOfInterest(
                 x: x,
                 y: y,
                 scale: scale,
+                orientation: orientation,
                 laplacian: laplacian != 0 ? +1 : -1,
                 descriptor: descriptor
             )

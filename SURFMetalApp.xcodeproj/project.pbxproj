@@ -19,13 +19,14 @@
 		FC673F1F299C1520001703A3 /* KeyPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC673F1E299C1520001703A3 /* KeyPoint.swift */; };
 		FC673F21299CCC67001703A3 /* Math.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC673F20299CCC67001703A3 /* Math.swift */; };
 		FC673F25299CDEF1001703A3 /* BaySURFFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC673F24299CDEF1001703A3 /* BaySURFFile.swift */; };
-		FC673F27299E16BB001703A3 /* waterfall.surf in Resources */ = {isa = PBXBuildFile; fileRef = FC673F26299E16BA001703A3 /* waterfall.surf */; };
-		FC673F29299E5569001703A3 /* SURFDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC673F28299E5569001703A3 /* SURFDescriptor.swift */; };
+		FC673F29299E5569001703A3 /* Descriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC673F28299E5569001703A3 /* Descriptor.swift */; };
 		FC673F2B299E557D001703A3 /* SURFIPOL.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC673F2A299E557D001703A3 /* SURFIPOL.swift */; };
 		FC673F2F299F938B001703A3 /* lena.png in Resources */ = {isa = PBXBuildFile; fileRef = FC673F2E299F938B001703A3 /* lena.png */; };
 		FC673F3129A35946001703A3 /* Field.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC673F3029A35946001703A3 /* Field.swift */; };
 		FC673F3529A3F459001703A3 /* IPOLSURFFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC673F3429A3F459001703A3 /* IPOLSURFFile.swift */; };
 		FC673F3929A40808001703A3 /* lena.surf in Resources */ = {isa = PBXBuildFile; fileRef = FC673F3829A40808001703A3 /* lena.surf */; };
+		FC673F3B29A4B5B4001703A3 /* CoreGraphicsExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC673F3A29A4B5B4001703A3 /* CoreGraphicsExtensions.swift */; };
+		FC673F3D29A4BD01001703A3 /* waterfall.surf in Resources */ = {isa = PBXBuildFile; fileRef = FC673F3C29A4BD01001703A3 /* waterfall.surf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,13 +44,14 @@
 		FC673F1E299C1520001703A3 /* KeyPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyPoint.swift; sourceTree = "<group>"; };
 		FC673F20299CCC67001703A3 /* Math.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Math.swift; sourceTree = "<group>"; };
 		FC673F24299CDEF1001703A3 /* BaySURFFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaySURFFile.swift; sourceTree = "<group>"; };
-		FC673F26299E16BA001703A3 /* waterfall.surf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = waterfall.surf; path = ../../../SURF/waterfall.surf; sourceTree = "<group>"; };
-		FC673F28299E5569001703A3 /* SURFDescriptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SURFDescriptor.swift; sourceTree = "<group>"; };
+		FC673F28299E5569001703A3 /* Descriptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Descriptor.swift; sourceTree = "<group>"; };
 		FC673F2A299E557D001703A3 /* SURFIPOL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SURFIPOL.swift; sourceTree = "<group>"; };
 		FC673F2E299F938B001703A3 /* lena.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = lena.png; sourceTree = "<group>"; };
 		FC673F3029A35946001703A3 /* Field.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Field.swift; sourceTree = "<group>"; };
 		FC673F3429A3F459001703A3 /* IPOLSURFFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPOLSURFFile.swift; sourceTree = "<group>"; };
 		FC673F3829A40808001703A3 /* lena.surf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = lena.surf; sourceTree = "<group>"; };
+		FC673F3A29A4B5B4001703A3 /* CoreGraphicsExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreGraphicsExtensions.swift; sourceTree = "<group>"; };
+		FC673F3C29A4BD01001703A3 /* waterfall.surf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = waterfall.surf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -88,7 +90,7 @@
 				FC673F1A299BA98D001703A3 /* waterfall.png */,
 				FC673F2E299F938B001703A3 /* lena.png */,
 				FC673F3829A40808001703A3 /* lena.surf */,
-				FC673F26299E16BA001703A3 /* waterfall.surf */,
+				FC673F3C29A4BD01001703A3 /* waterfall.surf */,
 				FC673F09299B93ED001703A3 /* SURFMetalApp.entitlements */,
 				FC673F0A299B93ED001703A3 /* Preview Content */,
 			);
@@ -115,7 +117,7 @@
 		FC673F15299B9429001703A3 /* SURF */ = {
 			isa = PBXGroup;
 			children = (
-				FC673F28299E5569001703A3 /* SURFDescriptor.swift */,
+				FC673F28299E5569001703A3 /* Descriptor.swift */,
 				FC673F12299B9416001703A3 /* SURFBay.swift */,
 				FC673F2A299E557D001703A3 /* SURFIPOL.swift */,
 				FC673F1C299BABAA001703A3 /* FastHessian.swift */,
@@ -124,6 +126,7 @@
 				FC673F18299BA5A9001703A3 /* IntegralImage.swift */,
 				FC673F1E299C1520001703A3 /* KeyPoint.swift */,
 				FC673F20299CCC67001703A3 /* Math.swift */,
+				FC673F3A29A4B5B4001703A3 /* CoreGraphicsExtensions.swift */,
 				FC673F24299CDEF1001703A3 /* BaySURFFile.swift */,
 				FC673F3429A3F459001703A3 /* IPOLSURFFile.swift */,
 			);
@@ -192,7 +195,7 @@
 				FC673F2F299F938B001703A3 /* lena.png in Resources */,
 				FC673F0C299B93ED001703A3 /* Preview Assets.xcassets in Resources */,
 				FC673F08299B93ED001703A3 /* Assets.xcassets in Resources */,
-				FC673F27299E16BB001703A3 /* waterfall.surf in Resources */,
+				FC673F3D29A4BD01001703A3 /* waterfall.surf in Resources */,
 				FC673F3929A40808001703A3 /* lena.surf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -204,7 +207,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FC673F29299E5569001703A3 /* SURFDescriptor.swift in Sources */,
+				FC673F29299E5569001703A3 /* Descriptor.swift in Sources */,
 				FC673F1F299C1520001703A3 /* KeyPoint.swift in Sources */,
 				FC673F3129A35946001703A3 /* Field.swift in Sources */,
 				FC673F06299B93ED001703A3 /* ContentView.swift in Sources */,
@@ -215,6 +218,7 @@
 				FC673F1D299BABAA001703A3 /* FastHessian.swift in Sources */,
 				FC673F13299B9416001703A3 /* SURFBay.swift in Sources */,
 				FC673F04299B93ED001703A3 /* SURFMetalApp.swift in Sources */,
+				FC673F3B29A4B5B4001703A3 /* CoreGraphicsExtensions.swift in Sources */,
 				FC673F21299CCC67001703A3 /* Math.swift in Sources */,
 				FC673F2B299E557D001703A3 /* SURFIPOL.swift in Sources */,
 			);
