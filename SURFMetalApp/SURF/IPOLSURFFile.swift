@@ -11,6 +11,32 @@ import OSLog
 
 private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "SURFFile")
 
+extension Descriptor {
+    
+    init(_ keypoint: IPOLSURFFile.PointOfInterest) {
+        var vectors: [VectorDescriptor] = []
+        for i in stride(from: 0, to: keypoint.descriptor.count, by: 4) {
+            var vector = VectorDescriptor(
+                sumDx: keypoint.descriptor[i + 0],
+                sumDy: keypoint.descriptor[i + 1],
+                sumAbsDx: keypoint.descriptor[i + 2],
+                sumAbsDy: keypoint.descriptor[i + 3]
+            )
+            vectors.append(vector)
+        }
+        self.init(
+            keypoint: Keypoint(
+                x: keypoint.x,
+                y: keypoint.y,
+                scale: keypoint.scale,
+                orientation: keypoint.orientation,
+                laplacian: keypoint.laplacian
+            ),
+            vector: vectors
+        )
+    }
+}
+
 
 final class IPOLSURFFile {
     

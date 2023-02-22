@@ -16,9 +16,6 @@ struct Keypoint {
     // detected scale
     var scale: Float
     
-    // strength of the interest point
-    var strength: Float
-    
     // orientation
     var orientation: Float
     

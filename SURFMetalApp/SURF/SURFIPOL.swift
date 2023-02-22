@@ -18,7 +18,7 @@ private let pi: Float = 3.14159265358979323846
 private let NUMBER_SECTOR = 20
 
 // Ratio between two matches
-private let RATE = 0.6
+private let RATE: Float = 0.6
 
 // Maximum octave
 private let OCTAVE = 4
@@ -35,6 +35,50 @@ private let DESCRIPTOR_SIZE_1D = 4
 // Gaussian - should be computed as an array to be faster.
 private func gaussian(x: Float, y: Float, sig: Float) -> Float {
     return 1 / (2 * pi * sig * sig) * exp( -(x * x + y * y) / (2 * sig * sig))
+}
+
+
+func match(_ l1: [Descriptor], _ l2: [Descriptor]) -> [Match] {
+    // The match uses a ratio between a selected descriptor of l1 and the two closest descriptors
+    // of l2.
+    let thrm = RATE * RATE
+
+    var matches: [Match] = []
+    
+    // Matching is not symmetric.
+    for i in 0 ..< l1.count {
+        
+        let p1 = l1[i]
+        var position = -1
+        var d1: Float = 3
+        var d2: Float = 3
+        
+        for j in 0 ..< l2.count {
+            let p2 = l2[j]
+            let d = p1.euclideanDistance(to: p2)
+            
+            // We select the two closes descriptors
+            if p1.keypoint.laplacian == p2.keypoint.laplacian {
+                d2 = (d2 > d) ? d : d2
+                if d1 > d {
+                    position = j
+                    d2 = d1
+                    d1 = d
+                }
+            }
+        }
+        
+        // Try to match it
+        if position >= 0 && (thrm * d2) > d1 {
+            let match = Match(
+                id: matches.count, 
+                a: p1,
+                b: l2[position]
+            )
+            matches.append(match)
+        }
+    }
+    return matches
 }
 
 
@@ -94,6 +138,14 @@ final class SURFIPOL {
     }
         
     func getKeypoints(image: Bitmap, threshold: Float = 1000) -> [Descriptor] {
+        let startTime = CFAbsoluteTimeGetCurrent()
+        defer {
+            let endTIme = CFAbsoluteTimeGetCurrent()
+            let elapsedTime = endTIme - startTime
+            let framesPerSecond = 1 / elapsedTime
+            print("Time: ", elapsedTime, "seconds", "/", framesPerSecond, "frames per second")
+        }
+        
         var keypoints: [Keypoint] = []
         
         // Compute the integral image
@@ -108,10 +160,6 @@ final class SURFIPOL {
         var Dxx: Float
         var Dxy: Float
         var Dyy: Float
-        var intervalCounter: Int
-        var octaveCounter: Int
-        var x: Int
-        var y: Int
         var w: Int
         var h: Int
         var xcoo: Int
@@ -249,7 +297,8 @@ final class SURFIPOL {
         
         // Compute the descriptors
         logger.info("getKeypoints: Found \(keypoints.count) total keypoints")
-        return getDescriptors(integralImage: integralImage, keypoints: keypoints)
+        let descriptors = getDescriptors(integralImage: integralImage, keypoints: keypoints)
+        return descriptors
     }
     
     
@@ -333,7 +382,6 @@ final class SURFIPOL {
             x: x_,
             y: y_,
             scale: s_,
-            strength: 0,
             orientation: orientation,
             laplacian: Int(signLaplacian)
         )
@@ -451,10 +499,6 @@ final class SURFIPOL {
         for i in 0 ..< DESCRIPTOR_SIZE_1D {
             for j in 0 ..< DESCRIPTOR_SIZE_1D {
                 
-                // (desc->list[DESCRIPTOR_SIZE_1D*i+j]).sumDx=0;
-                // (desc->list[DESCRIPTOR_SIZE_1D*i+j]).sumAbsDx=0;
-                // (desc->list[DESCRIPTOR_SIZE_1D*i+j]).sumDy=0;
-                // (desc->list[DESCRIPTOR_SIZE_1D*i+j]).sumAbsDy=0;
                 var sumDx: Float = 0
                 var sumAbsDx: Float = 0
                 var sumDy: Float = 0

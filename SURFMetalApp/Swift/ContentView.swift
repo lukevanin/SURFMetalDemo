@@ -9,14 +9,6 @@ import SwiftUI
 import CoreGraphics
 import simd
 
-func loadImage(named name: String) -> CGImage {
-    let fileURL = Bundle.main.urlForImageResource(name)!
-    let dataProvider = CGDataProvider(url: fileURL as CFURL)!
-    let image = CGImage(pngDataProviderSource: dataProvider, decode: nil, shouldInterpolate: true, intent: .perceptual)!
-    return image
-}
-
-
 struct KeypointViewModel {
     var x: Float
     var y: Float
@@ -90,6 +82,95 @@ struct SURFCompareView: View {
                     .blendMode(.plusLighter)
             }
             .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
+            .padding()
+        }
+    }
+}
+
+private let colors: [Color] = [.red, .orange, .yellow, .green, .blue, .indigo, .purple]
+
+struct SURFCorrespondenceView: View {
+    
+    @State var sourceRect: CGRect
+    @State var targetRect: CGRect
+    @State var matches: [Match]
+    @State var zoom: CGFloat
+    @State var sourceColor: Color
+    @State var targetColor: Color
+    
+    var body: some View {
+        ForEach(matches) { match in
+            Path { path in
+                let sourcePoint = CGPoint(
+                    x: sourceRect.origin.x + (CGFloat(match.a.keypoint.x) * zoom),
+                    y: sourceRect.origin.y + (CGFloat(match.a.keypoint.y) * zoom)
+                )
+                let targetPoint = CGPoint(
+                    x: targetRect.origin.x + (CGFloat(match.b.keypoint.x) * zoom),
+                    y: targetRect.origin.y + (CGFloat(match.b.keypoint.y) * zoom)
+                )
+                
+                path.move(to: sourcePoint)
+                path.addLine(to: targetPoint)
+            }
+//            .stroke(LinearGradient(colors: [sourceColor, targetColor], startPoint: .leading, endPoint: .trailing), lineWidth: 2)
+            .stroke(colors[match.id % colors.count], lineWidth: 1)
+        }
+        .drawingGroup()
+        .blendMode(.plusLighter)
+    }
+}
+
+
+struct SURFMatchView: View {
+    
+    let sourceImage: CGImage
+    let targetImage: CGImage
+    let matches: [Match]
+    let zoom: CGFloat
+    
+    var sourceRect: CGRect {
+        CGRect(
+            x: 0,
+            y: 0,
+            width: CGFloat(sourceImage.width) * zoom,
+            height: CGFloat(sourceImage.height) * zoom
+        )
+    }
+    
+    var targetRect: CGRect {
+        CGRect(
+            x: sourceRect.origin.x + sourceRect.width,
+            y: 0,
+            width: CGFloat(targetImage.width) * zoom,
+            height: CGFloat(targetImage.height) * zoom
+        )
+    }
+
+    var body: some View {
+        ScrollView([.horizontal, .vertical], showsIndicators: true) {
+            ZStack {
+                HStack(alignment: .top, spacing: 0) {
+                    Image(sourceImage, scale: 1, label: Text("Source"))
+                        .resizable()
+                        .frame(width: sourceRect.width, height: sourceRect.height)
+                        .brightness(-0.2)
+                    
+                    Image(targetImage, scale: 1, label: Text("Target"))
+                        .resizable()
+                        .frame(width: targetRect.width, height: targetRect.height)
+                        .brightness(-0.2)
+                }
+
+                SURFCorrespondenceView(
+                    sourceRect: sourceRect,
+                    targetRect: targetRect,
+                    matches: matches,
+                    zoom: zoom,
+                    sourceColor: .yellow,
+                    targetColor: .cyan
+                )
+            }
             .padding()
         }
     }
