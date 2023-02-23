@@ -16,9 +16,9 @@ final class Bitmap {
     let width: Int
     let height: Int
 
-    private let bytesPerRow: Int
-    private let bytesPerComponent = MemoryLayout<Pixel>.stride
-    private let buffer: UnsafeMutableBufferPointer<Pixel>
+    let bytesPerRow: Int
+    let bytesPerComponent = MemoryLayout<Pixel>.stride
+    let buffer: UnsafeMutableBufferPointer<Pixel>
     
     convenience init(cgImage image: CGImage) {
         self.init(width: image.width, height: image.height, initialize: false)

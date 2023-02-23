@@ -62,28 +62,25 @@ struct SURFCompareView: View {
     let zoom: CGFloat
     
     var body: some View {
-        ScrollView([.horizontal, .vertical], showsIndicators: true) {
-            ZStack {
-                Image(image, scale: 1, label: Text("Sample"))
-                    .resizable()
-                    .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
-                    .brightness(-0.2)
-                
+        ZStack {
+            Image(image, scale: 1, label: Text("Sample"))
+                .resizable()
+                .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
+                .brightness(-0.2)
+            
 //                Rectangle()
 //                    .fill(.black.opacity(0.5))
 //                    .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
-                
-                SURFFeaturesView(features: targetFeatures, zoom: zoom, color: .cyan)
-                    .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
-                    .blendMode(.plusLighter)
-                
-                SURFFeaturesView(features: sourceFeatures, zoom: zoom, color: .red)
-                    .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
-                    .blendMode(.plusLighter)
-            }
-            .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
-            .padding()
+            
+            SURFFeaturesView(features: targetFeatures, zoom: zoom, color: .cyan)
+                .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
+                .blendMode(.plusLighter)
+            
+            SURFFeaturesView(features: sourceFeatures, zoom: zoom, color: .red)
+                .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
+                .blendMode(.plusLighter)
         }
+        .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
     }
 }
 
@@ -179,20 +176,34 @@ struct SURFMatchView: View {
 
 struct SURFDebugView: View {
     
-    let hessianImages: [(index: Int, image: CGImage)]
+    let hessianImages: [(index: Int, reference: CGImage, metal: CGImage)]
     
     var body: some View {
-        
-        ScrollView {
-            VStack {
+        VStack {
+            ForEach(hessianImages, id: \.index) { index, referenceImage, metalImage in
                 
-                ForEach(hessianImages, id: \.index) { index, image in
-                    Image(image, scale: 1, label: Text("Hessian \(index)"))
+                Image(metalImage, scale: 1, label: Text("Hessian (Metal) \(index)"))
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 512, height: 512)
+
+                /*
+                HStack {
+                    Image(referenceImage, scale: 1, label: Text("Hessian (IPOL) \(index)"))
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: CGFloat(image.width), height: CGFloat(image.height))
-                        .backgroundStyle(.green)
+                        .frame(width: 512, height: 512)
+                    //                            .frame(width: CGFloat(referenceImage.width) * 0.5, height: CGFloat(referenceImage.height) * 0.5)
+                    //                            .colorMultiply(.cyan)
+                    
+                    Image(metalImage, scale: 1, label: Text("Hessian (Metal) \(index)"))
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 512, height: 512)
+                    //                            .frame(width: CGFloat(metalImage.width) * 0.5, height: CGFloat(metalImage.height) * 0.5)
+                    //                            .colorMultiply(.red)
                 }
+                 */
             }
         }
     }

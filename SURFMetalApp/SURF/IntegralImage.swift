@@ -10,7 +10,7 @@ import Foundation
 
 final class IntegralImage {
     
-    typealias Element = Int
+    typealias Element = Int32
     
     let imageWidth: Int
     let imageHeight: Int
@@ -21,14 +21,18 @@ final class IntegralImage {
 
     let buffer: UnsafeMutableBufferPointer<Element>
     
-    init(image: Bitmap, padding: Int) {
-        self.imageWidth = image.width
-        self.imageHeight = image.height
-        self.paddedWidth = image.width + (padding * 2)
-        self.paddedHeight = image.height + (padding * 2)
+    convenience init(image: Bitmap, padding: Int) {
+        self.init(width: image.width, height: image.height, padding: padding)
+        update(image: image)
+    }
+    
+    init(width: Int, height: Int, padding: Int) {
+        self.imageWidth = width
+        self.imageHeight = height
+        self.paddedWidth = width + (padding * 2)
+        self.paddedHeight = height + (padding * 2)
         self.padding = padding
         self.buffer = UnsafeMutableBufferPointer.allocate(capacity: paddedWidth * paddedHeight)
-        update(image: image)
     }
     
     deinit {
@@ -105,7 +109,7 @@ final class IntegralImage {
         let a2 = y - b
         let b1 = a1 - c
         let b2 = a2 - d
-        return self[b1, b2] + self[a1, a2] - self[b1, a2] - self[a1, b2] // Note: No L2-normalization is performed here.
+        return Int(self[b1, b2] + self[a1, a2] - self[b1, a2] - self[a1, b2]) // Note: No L2-normalization is performed here.
     }
 
     // Convolution by a box [-1,+1]
