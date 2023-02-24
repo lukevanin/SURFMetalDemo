@@ -34,10 +34,19 @@ typedef metal::int32_t EnumBackingType;
 // MARK: - Types
 
 
-struct ExtremaResult {
+struct Coordinate {
     uint32_t x;
     uint32_t y;
     uint32_t interval;
+};
+
+
+struct Keypoint {
+    float x;
+    float y;
+    float scale;
+    float orientation;
+    int32_t laplacian;
 };
 
 

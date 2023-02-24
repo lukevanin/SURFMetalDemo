@@ -30,6 +30,7 @@ final class MetalFunction {
         else {
             function = library.makeFunction(name: name)!
         }
+        function.label = name
         let computePipelineState = try! device.makeComputePipelineState(function: function)
         self.device = device
         self.name = name
@@ -47,6 +48,7 @@ final class MetalFunction {
         textureArrays: [[MTLTexture]]
     ) {
         let computeEncoder = commandBuffer.makeComputeCommandEncoder()!
+        computeEncoder.label = name
         computeEncoder.setComputePipelineState(computePipelineState)
         var index = 0
         for buffer in buffers {
@@ -63,8 +65,8 @@ final class MetalFunction {
             let labels = textureArray.map {
                 $0.label ?? "-anonymous-"
             }
-            logger.debug("Function \(self.name): Binding textureArray[\(labels)] at index #\(index)")
             let lastIndex = index + textureArray.count
+            logger.debug("Function \(self.name): Binding textureArray[\(labels)] at index #\(index)...\(lastIndex - 1)")
             computeEncoder.setTextures(textureArray, range: index ..< lastIndex)
             index = lastIndex
         }
@@ -159,7 +161,7 @@ final class MetalFunction3D {
         let d = function.maxTotalThreadsPerThreadgroup / function.threadExecutionWidth;
         function.encode(
             commandBuffer: commandBuffer,
-            grid: MTLSize(width: width, height: height, depth: 1),
+            grid: MTLSize(width: width, height: height, depth: depth),
             threads: MTLSize(width: w, height: h, depth: d),
             buffers: buffers,
             textures: textures,

@@ -54,8 +54,10 @@ final class SURFMetalOctave {
     
     let hessianFunctions: [HessianFunction]
     let extremaFunction: ExtremaFunction
-    
-    let extremaResultBuffer: DynamicBuffer<ExtremaResult>
+    let interpolateFunction: InterpolateFunction
+
+    let extremaResultBuffer: DynamicBuffer<Coordinate>
+    let keypointResultsBuffer: DynamicBuffer<Keypoint>
     
     let hessianTextures: [MTLTexture]
     let laplacianTextures: [MTLTexture]
@@ -80,7 +82,10 @@ final class SURFMetalOctave {
                 sampleWidth: width,
                 sampleHeight: height
             )
-            let hessianFunction = HessianFunction(device: device, configuration: hessianConfiguration)
+            let hessianFunction = HessianFunction(
+                device: device,
+                configuration: hessianConfiguration
+            )
             
             let hessianTexture: MTLTexture = {
                 let descriptor = MTLTextureDescriptor.texture2DDescriptor(
@@ -134,11 +139,23 @@ final class SURFMetalOctave {
             device: device,
             threshold: threshold
         )
-        
-        let extremaResultBuffer: DynamicBuffer<ExtremaResult> = DynamicBuffer(
+
+        let interpolateFunction = InterpolateFunction(
+            device: device,
+            octave: octaveCounter,
+            sampleImage: SAMPLE_IMAGE
+        )
+
+        let extremaResultBuffer: DynamicBuffer<Coordinate> = DynamicBuffer(
             device: device,
             name: "Extrema",
-            count: 4096
+            capacity: 1024 * 4
+        )
+
+        let keypointResultsBuffer: DynamicBuffer<Keypoint> = DynamicBuffer(
+            device: device,
+            name: "Keypoints",
+            capacity: 1024 * 8
         )
 
         self.octaveCounter = octaveCounter
@@ -150,17 +167,19 @@ final class SURFMetalOctave {
         self.laplacianTextures = laplacianTextures
         self.hessianFunctions = hessianFunctions
         self.extremaFunction = extremaFunction
+        self.interpolateFunction = interpolateFunction
         self.extremaResultBuffer = extremaResultBuffer
+        self.keypointResultsBuffer = keypointResultsBuffer
     }
     
-    func computeHessian(commandBuffer: MTLCommandBuffer, integralImageTexture: MTLTexture) {
+    func findKeypoints(commandBuffer: MTLCommandBuffer, integralImageTexture: MTLTexture) {
         
         for intervalCounter in 0 ..< INTERVAL {
             
             let hessianTexture = hessianTextures[intervalCounter]
             let laplacianTexture = laplacianTextures[intervalCounter]
             let hessianFunction = hessianFunctions[intervalCounter]
-
+            
             hessianFunction.encode(
                 commandBuffer: commandBuffer,
                 integralImageInputTexture: integralImageTexture,
@@ -178,15 +197,23 @@ final class SURFMetalOctave {
                 sourceTexture: laplacianTexture
             )
         }
-    }
-    
-    func computeExtrema(commandBuffer: MTLCommandBuffer) {
+        
         extremaFunction.encode(
             commandBuffer: commandBuffer,
             width: width,
             height: height,
             hessianInputTextures: hessianTextures,
             resultsOutputBuffer: extremaResultBuffer
+        )
+    }
+    
+    func interpolateKeypoints(commandBuffer: MTLCommandBuffer, integralImageTexture: MTLTexture) {
+        interpolateFunction.encode(
+            commandBuffer: commandBuffer,
+            integralImageInputTexture: integralImageTexture,
+            hessianInputTextures: hessianTextures,
+            extremaInputBuffer: extremaResultBuffer,
+            keypointsOutputBuffer: keypointResultsBuffer
         )
     }
 }
@@ -309,7 +336,7 @@ final class SURFMetal {
         
         let symmetrizedBitmap = image.symmetrized(padding: padding)
 
-        capture("SURF", commandQueue: commandQueue, capture: false) { commandBuffer in
+        capture("findKeypoints", commandQueue: commandQueue, capture: false) { commandBuffer in
             
             // Compute the integral image
             makeIntegralImage(
@@ -321,56 +348,74 @@ final class SURFMetal {
             // in each octave.
             for octaveCounter in 0 ..< OCTAVE {
                 let octave = octaves[octaveCounter]
-                octave.computeHessian(
+                octave.findKeypoints(
                     commandBuffer: commandBuffer,
                     integralImageTexture: integralImageTexture
                 )
-                
-                octave.computeExtrema(
-                    commandBuffer: commandBuffer
+            }
+        }
+        
+        capture("interpolateKeypoints", commandQueue: commandQueue, capture: false) { commandBuffer in
+            for octaveCounter in 0 ..< OCTAVE {
+                let octave = octaves[octaveCounter]
+                octave.interpolateKeypoints(
+                    commandBuffer: commandBuffer,
+                    integralImageTexture: integralImageTexture
                 )
             }
         }
         
         // Find keypoints
         var keypoints: [Keypoint] = []
-
+        
         for octaveCounter in 0 ..< OCTAVE {
-            let octave = octaves[octaveCounter]
-            let pow2 = Int(pow(2.0, Float(octaveCounter + 1)))
-//            let w = octave.width
-//            let h = octave.height
-            let sample = Int(pow(Float(SAMPLE_IMAGE), Float(octaveCounter))) // Sampling step
-
-            #warning("TODO: Separate hessian computation from keypoint detection")
-            
-            // Interpolate keypoints
             var octaveKeypointCount = 0
-            
-            let extrema = octave.extremaResultBuffer
-            logger.info("getKeypoints: octave=\(octaveCounter): Interpolating keypoints \(extrema.allocatedCount)")
+            let octave = octaves[octaveCounter]
+            let results = octave.keypointResultsBuffer
+            for i in 0 ..< results.count {
+                keypoints.append(results[i])
+                octaveKeypointCount += 1
+            }
+            logger.info("getKeypoints: octave=\(octaveCounter): Found \(octaveKeypointCount) keypoints for octave")
+        }
 
-            for i in 0 ..< extrema.allocatedCount {
-                let extremum = extrema[i]
+        
+//        for octaveCounter in 0 ..< OCTAVE {
+//            let octave = octaves[octaveCounter]
+//            let pow2 = Int(pow(2.0, Float(octaveCounter + 1)))
+////            let w = octave.width
+////            let h = octave.height
+//            let sample = Int(pow(Float(SAMPLE_IMAGE), Float(octaveCounter))) // Sampling step
+//
+//            #warning("TODO: Separate hessian computation from keypoint detection")
+//
+//            // Interpolate keypoints
+//            var octaveKeypointCount = 0
+//
+//            let extrema = octave.extremaResultBuffer
+//            logger.info("getKeypoints: octave=\(octaveCounter): Interpolating keypoints \(extrema.count)")
+//
+//            for i in 0 ..< extrema.count {
+//                let extremum = extrema[i]
                 
-                let x_ = Float(Int(extremum.x) * sample);
-                let y_ = Float(Int(extremum.y) * sample);
-                let s_ = 0.4 * Float(pow2 * (Int(extremum.interval) + 1) + 2); // box size or scale
+//                let x_ = Float(Int(extremum.x) * sample);
+//                let y_ = Float(Int(extremum.y) * sample);
+//                let s_ = 0.4 * Float(pow2 * (Int(extremum.interval) + 1) + 2); // box size or scale
 
-                let keypoint = Keypoint(
-                    x: x_,
-                    y: y_,
-                    scale: s_,
-                    orientation: 0,
-                    laplacian: 0
-                )
+//                let keypoint = Keypoint(
+//                    x: x_,
+//                    y: y_,
+//                    scale: s_,
+//                    orientation: 0,
+//                    laplacian: 0
+//                )
                 
 //                let keypoint = interpolationScaleSpace(
 //                    integralImage: integralImage,
 //                    octave: octaveCounter,
 //                    interval: Int(extremum.interval),
-//                    x: Int(extremum.x) * sample,
-//                    y: Int(extremum.y) * sample,
+//                    x: Int(extremum.x),
+//                    y: Int(extremum.y),
 //                    sample: sample,
 //                    pow2: pow2
 //                )
@@ -378,13 +423,13 @@ final class SURFMetal {
 //                guard let keypoint else {
 //                    continue
 //                }
-
-                keypoints.append(keypoint)
-                octaveKeypointCount += 1
-            }
-        
-            logger.info("getKeypoints: octave=\(octaveCounter): Found \(octaveKeypointCount) keypoints for octave")
-        }
+//
+//                keypoints.append(keypoint)
+//                octaveKeypointCount += 1
+//            }
+//
+//            logger.info("getKeypoints: octave=\(octaveCounter): Found \(octaveKeypointCount) keypoints for octave")
+//        }
         
         // Compute the descriptors
         logger.info("getKeypoints: Found \(keypoints.count) total keypoints")
@@ -412,89 +457,72 @@ final class SURFMetal {
         )
     }
     
-    // Check if a point is a local maximum or not, and more than a given threshold.
-//    private func isMaximum(imageStamp: [MetalField], x: Int, y: Int, scale: Int, threshold: Float) -> Bool {
-//        let tmp = imageStamp[scale][x, y]
-//
-//        guard tmp > threshold else {
-//            return false
-//        }
-//
-//        for j in y - 1 ... y + 1 {
-//            for i in x - 1 ... x + 1 {
-//                if imageStamp[scale - 1][i, j] >= tmp {
-//                    return false
-//                }
-//                if imageStamp[scale + 1][i, j] >= tmp {
-//                    return false
-//                }
-//                // TODO: Should this be && instead of ||
-//                if (x != i || y != j) && (imageStamp[scale][i, j] >= tmp) {
-//                    return false
-//                }
-//            }
-//        }
-//        return true
-//    }
-    
     // Scale space interpolation as described in Lowe
-    private func interpolationScaleSpace(integralImage: MetalIntegralImage, octave o: Int, interval i: Int, x: Int, y: Int, sample: Int, pow2 octaveValue: Int) -> Keypoint? {
-        
-        let img = octaves[o].hessians
-
-        //If we are outside the image...
-        if x <= 0 || y <= 0 || x >= (img[i].width - 2) || y >= (img[i].height - 2) {
-            return nil
-        }
-        
-        // Nabla X
-        let dx = (img[i][x + 1, y] - img[i][x - 1, y]) / 2
-        let dy = (img[i][x, y + 1] - img[i][x, y - 1]) / 2
-        let di = (img[i][x, y] - img[i][x, y]) / 2
-        #warning("FIXME: Compute gradient in i")
-        // let di = (img[i + 1][x, y] - img[i - 1][x, y]) / 2
-        
-        //Hessian X
-        let a: Float32 = img[i][x, y]
-        let dxx: Float32 = (img[i][x + 1, y] + img[i][x - 1, y]) - 2 * a
-        let dyy: Float32 = (img[i][x, y + 1] + img[i][x, y + 1]) - 2 * a
-        let dii: Float32 = (img[i - 1][x, y] + img[i + 1][x, y]) - 2 * a
-        
-        let dxy: Float32 = (img[i][x + 1, y + 1] - img[i][x + 1, y - 1] - img[i][x - 1, y + 1] + img[i][x - 1, y - 1]) / 4
-        let dxi: Float32 = (img[i + 1][x + 1, y] - img[i + 1][x - 1, y] - img[i - 1][x + 1, y] + img[i - 1][x - 1, y]) / 4
-        let dyi: Float32 = (img[i + 1][x, y + 1] - img[i + 1][x, y - 1] - img[i - 1][x, y + 1] + img[i - 1][x, y - 1]) / 4
-        
-        // Det
-        let det: Float32 = dxx * dyy * dii - dxx * dyi * dyi - dyy * dxi * dxi + 2 * dxi * dyi * dxy - dii * dxy * dxy
-
-        if det == 0 {
-            // Matrix must be inversible - maybe useless.
-            return nil
-        }
-        
-        let mx = -1 / det * (dx * (dyy * dii - dyi * dyi) + dy * (dxi * dyi - dii * dxy) + di * (dxy * dyi - dyy * dxi))
-        let my = -1 / det * (dx * (dxi * dyi - dii * dxy) + dy * (dxx * dii - dxi * dxi) + di * (dxy * dxi - dxx * dyi))
-        let mi = -1 / det * (dx * (dxy * dyi - dyy * dxi) + dy * (dxy * dxi - dxx * dyi) + di * (dxx * dyy - dxy * dxy))
-
-        // If the point is stable
-        guard abs(mx) < 1 && abs(my) < 1 && abs(mi) < 1 else {
-            return nil
-        }
-        
-        let x_ = Float(sample) * (Float(x) + mx) + 0.5 // Center the pixels value
-        let y_ = Float(sample) * (Float(y) + my) + 0.5
-        let s_ = 0.4 * (1 + Float(octaveValue) * (Float(i) + mi + 1))
-        let orientation = getOrientation(integralImage: integralImage, x: x_, y: y_, scale: s_)
-        let signLaplacian = octaves[o].signLaplacians[i][x, y]
-        
-        return Keypoint(
-            x: x_,
-            y: y_,
-            scale: s_,
-            orientation: orientation,
-            laplacian: Int(signLaplacian)
-        )
-    }
+//    private func interpolationScaleSpace(
+//        integralImage: MetalIntegralImage,
+//        octave o: Int,
+//        interval i: Int,
+//        x: Int,
+//        y: Int,
+//        sample: Int,
+//        pow2 octaveValue: Int
+//    ) -> Keypoint? {
+//        
+//        let img = octaves[o].hessians
+//
+//        //If we are outside the image...
+//        if x <= 0 || y <= 0 || x >= (img[i].width - 2) || y >= (img[i].height - 2) {
+//            return nil
+//        }
+//        
+//        // Nabla X
+//        let dx = (img[i][x + 1, y] - img[i][x - 1, y]) / 2
+//        let dy = (img[i][x, y + 1] - img[i][x, y - 1]) / 2
+//        let di = (img[i][x, y] - img[i][x, y]) / 2
+//        #warning("FIXME: Compute gradient in i")
+//        // let di = (img[i + 1][x, y] - img[i - 1][x, y]) / 2
+//        
+//        //Hessian X
+//        let a: Float32 = img[i][x, y]
+//        let dxx: Float32 = (img[i][x + 1, y] + img[i][x - 1, y]) - 2 * a
+//        let dyy: Float32 = (img[i][x, y + 1] + img[i][x, y + 1]) - 2 * a
+//        let dii: Float32 = (img[i - 1][x, y] + img[i + 1][x, y]) - 2 * a
+//        
+//        let dxy: Float32 = (img[i][x + 1, y + 1] - img[i][x + 1, y - 1] - img[i][x - 1, y + 1] + img[i][x - 1, y - 1]) / 4
+//        let dxi: Float32 = (img[i + 1][x + 1, y] - img[i + 1][x - 1, y] - img[i - 1][x + 1, y] + img[i - 1][x - 1, y]) / 4
+//        let dyi: Float32 = (img[i + 1][x, y + 1] - img[i + 1][x, y - 1] - img[i - 1][x, y + 1] + img[i - 1][x, y - 1]) / 4
+//        
+//        // Det
+//        let det: Float32 = dxx * dyy * dii - dxx * dyi * dyi - dyy * dxi * dxi + 2 * dxi * dyi * dxy - dii * dxy * dxy
+//
+//        if det == 0 {
+//            // Matrix must be inversible - maybe useless.
+//            return nil
+//        }
+//        
+//        let mx = -1 / det * (dx * (dyy * dii - dyi * dyi) + dy * (dxi * dyi - dii * dxy) + di * (dxy * dyi - dyy * dxi))
+//        let my = -1 / det * (dx * (dxi * dyi - dii * dxy) + dy * (dxx * dii - dxi * dxi) + di * (dxy * dxi - dxx * dyi))
+//        let mi = -1 / det * (dx * (dxy * dyi - dyy * dxi) + dy * (dxy * dxi - dxx * dyi) + di * (dxx * dyy - dxy * dxy))
+//
+//        // If the point is stable
+//        guard abs(mx) < 1 && abs(my) < 1 && abs(mi) < 1 else {
+//            return nil
+//        }
+//        
+//        let x_ = Float(sample) * (Float(x) + mx) + 0.5 // Center the pixels value
+//        let y_ = Float(sample) * (Float(y) + my) + 0.5
+//        let s_ = 0.4 * (1 + Float(octaveValue) * (Float(i) + mi + 1))
+//        let orientation = getOrientation(integralImage: integralImage, x: x_, y: y_, scale: s_)
+//        let signLaplacian = octaves[o].signLaplacians[i][x, y]
+//        
+//        return Keypoint(
+//            x: x_,
+//            y: y_,
+//            scale: s_,
+//            orientation: orientation,
+//            laplacian: Int32(signLaplacian)
+//        )
+//    }
     
     private func getOrientation(integralImage: MetalIntegralImage, x: Float, y: Float, scale: Float) -> Float {
         let sectors = NUMBER_SECTOR

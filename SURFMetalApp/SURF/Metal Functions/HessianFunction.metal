@@ -8,6 +8,7 @@
 #include <metal_stdlib>
 
 #include "Shared.h"
+#include "Common.h"
 
 using namespace metal;
 
@@ -16,41 +17,6 @@ constant uint PADDING [[ function_constant(0) ]];
 constant uint SAMPLE_IMAGE [[ function_constant(1) ]];
 constant uint OCTAVE [[ function_constant(2) ]];
 constant uint INTERVAL [[ function_constant(3) ]];
-
-
-
-class IntegralImage {
-    texture2d<uint, access::read> texture [[texture(1)]];
-    int2 padding;
-    
-public:
-    IntegralImage(
-                  texture2d<uint, access::read> texture [[texture(1)]],
-                  int2 padding
-                  ) : texture(texture), padding(padding)
-    {
-    }
-    
-    int getPixel(const int2 coordinate) {
-        return (int)texture.read(uint2(padding + coordinate)).r;
-    }
-    
-    int squareConvolutionXY(
-                                     const int a,
-                                     const int b,
-                                     const int c,
-                                     const int d,
-                                     const int x,
-                                     const int y
-                                     )
-    {
-        const int a1 = x - a;
-        const int a2 = y - b;
-        const int b1 = a1 - c;
-        const int b2 = a2 - d;
-        return getPixel(int2(b1, b2)) + getPixel(int2(a1, a2)) - getPixel(int2(b1, a2)) - getPixel(int2(a1, b2)); // Note: No L2-normalization is performed here.
-    }
-};
 
 
 kernel void hessian(texture2d<uint, access::read> integralSourceTexture [[ texture(0) ]],

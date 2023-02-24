@@ -53,7 +53,7 @@ final class MetalBitmap {
     }
     
     deinit {
-        logger.debug("Deallocated \(self.name)")
+        // logger.debug("Deallocated \(self.name)")
         // buffer.setPurgeableState(.empty)
     }
     

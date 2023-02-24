@@ -376,7 +376,7 @@ final class SURFIPOL {
             y: y_,
             scale: s_,
             orientation: orientation,
-            laplacian: Int(signLaplacian)
+            laplacian: Int32(signLaplacian)
         )
     }
     

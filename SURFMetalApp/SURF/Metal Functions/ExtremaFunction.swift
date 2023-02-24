@@ -30,7 +30,7 @@ final class ExtremaFunction {
         width: Int,
         height: Int,
         hessianInputTextures: [MTLTexture],
-        resultsOutputBuffer: DynamicBuffer<ExtremaResult>
+        resultsOutputBuffer: DynamicBuffer<Coordinate>
     ) {
         precondition(width > 2)
         precondition(height > 2)

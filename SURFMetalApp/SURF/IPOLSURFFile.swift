@@ -30,7 +30,7 @@ extension Descriptor {
                 y: keypoint.y,
                 scale: keypoint.scale,
                 orientation: keypoint.orientation,
-                laplacian: keypoint.laplacian
+                laplacian: Int32(keypoint.laplacian)
             ),
             vector: vectors
         )
