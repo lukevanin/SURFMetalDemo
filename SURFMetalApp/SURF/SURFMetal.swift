@@ -202,16 +202,6 @@ final class SURFMetalOctave {
                 hessianOutputTexture: hessianTexture,
                 laplacianOutputTexture: laplacianTexture
             )
-            
-            hessians[intervalCounter].copyFromTexture(
-                commandBuffer: commandBuffer,
-                sourceTexture: hessianTexture
-            )
-            
-            signLaplacians[intervalCounter].copyFromTexture(
-                commandBuffer: commandBuffer,
-                sourceTexture: laplacianTexture
-            )
         }
         
         extremaResultBuffer.allocate(0)
@@ -422,11 +412,6 @@ final class SURFMetal {
             sourceTexture: symmetrizedImageTexture,
             targetTexture: integralImageTexture
         )
-        
-        integralImage.copyFromTexture(
-            commandBuffer: commandBuffer,
-            sourceTexture: integralImageTexture
-        )
     }
     
     private func getDescriptors() -> [Descriptor] {
@@ -446,114 +431,6 @@ final class SURFMetal {
         
         // Compute the descriptors
         logger.info("getKeypoints: Found \(output.count) total keypoints")
-//        let descriptors = getDescriptors(integralImage: integralImage, keypoints: keypoints)
         return output
     }
-    
-//    private func getDescriptors(integralImage: MetalIntegralImage, keypoints: [Keypoint]) -> [Descriptor] {
-//        var descriptors: [Descriptor] = []
-//        for keypoint in keypoints {
-//            let descriptor = makeDescriptor(integralImage: integralImage, keypoint: keypoint)
-//            descriptors.append(descriptor)
-//        }
-//        return descriptors
-//    }
-    
-//    private func makeDescriptor(integralImage: MetalIntegralImage, keypoint: Keypoint) -> Descriptor {
-//        let scale: Float = keypoint.scale
-//
-//        // Divide in a 4x4 zone the space around the interest point
-//
-//        // First compute the orientation.
-//        let cosP = cos(keypoint.orientation)
-//        let sinP = sin(keypoint.orientation)
-//        var norm: Float = 0
-//        var u: Float
-//        var v: Float
-//        var gauss: Float
-//        var responseU: Float
-//        var responseV: Float
-//        var responseX: Int
-//        var responseY: Int
-//
-//        let zeroVector = VectorDescriptor(sumDx: 0, sumDy: 0, sumAbsDx: 0, sumAbsDy: 0)
-//        let vectorCount = DESCRIPTOR_SIZE_1D * DESCRIPTOR_SIZE_1D
-//        var vectors: [VectorDescriptor] = Array(repeating: zeroVector, count: vectorCount)
-//
-//        // Divide in 16 sectors the space around the interest point.
-//        for i in 0 ..< DESCRIPTOR_SIZE_1D {
-//            for j in 0 ..< DESCRIPTOR_SIZE_1D {
-//
-//                var sumDx: Float = 0
-//                var sumAbsDx: Float = 0
-//                var sumDy: Float = 0
-//                var sumAbsDy: Float = 0
-//
-//                // Then each 4x4 is subsampled into a 5x5 zone
-//                for k in 0 ..< 5 {
-//                    for l in 0 ..< 5  {
-//                        // We pre compute Haar answers
-//                        #warning("TODO: Use simd matrix multiplication")
-//                        u = (keypoint.x + scale * (cosP * ((Float(i) - 2) * 5 + Float(k) + 0.5) - sinP * ((Float(j) - 2) * 5 + Float(l) + 0.5)))
-//                        v = (keypoint.y + scale * (sinP * ((Float(i) - 2) * 5 + Float(k) + 0.5) + cosP * ((Float(j) - 2) * 5 + Float(l) + 0.5)))
-//                        responseX = integralImage.haarX(
-//                            x: Int(u),
-//                            y: Int(v),
-//                            lambda: fround(scale)
-//                        ) // (u,v) are already translated of 0.5, which means
-//                                                                   // that there is no round-off to perform: one takes
-//                                                                   // the integer part of the coordinates.
-//                        responseY = integralImage.haarY(
-//                            x: Int(u),
-//                            y: Int(v),
-//                            lambda: fround(scale)
-//                        )
-//
-//                        // Gaussian weight
-//                        gauss = gaussian(
-//                            x: ((Float(i) - 2) * 5 + Float(k) + 0.5),
-//                            y: ((Float(j) - 2) * 5 + Float(l) + 0.5),
-//                            sig: 3.3
-//                        )
-//
-//                        // Rotation of the axis
-//                        #warning("TODO: Use simd matrix multiplication")
-//                        //responseU = gauss*( -responseX*sinP + responseY*cosP);
-//                        //responseV = gauss*(responseX*cosP + responseY*sinP);
-//                        responseU = gauss * (+Float(responseX) * cosP + Float(responseY) * sinP)
-//                        responseV = gauss * (-Float(responseX) * sinP + Float(responseY) * cosP)
-//
-//                        // The descriptors.
-//                        sumDx += responseU
-//                        sumAbsDx += abs(responseU)
-//                        sumDy += responseV
-//                        sumAbsDy += abs(responseV)
-//                    }
-//                }
-//
-//                let index = DESCRIPTOR_SIZE_1D * i + j
-//                let vector = VectorDescriptor(sumDx: sumDx, sumDy: sumDy, sumAbsDx: sumAbsDx, sumAbsDy: sumAbsDy)
-//                vectors[index] = vector
-//
-//                // Compute the norm of the vector
-//                norm += sumAbsDx * sumAbsDx + sumAbsDy * sumAbsDy + sumDx * sumDx + sumDy * sumDy
-//            }
-//        }
-//        // Normalization of the descriptors in order to improve invariance to contrast change
-//        // and whitening the descriptors.
-//        norm = sqrtf(norm)
-//
-//        if norm != 0 {
-//            for i in 0 ..< vectorCount {
-//                var vector = vectors[i]
-//                vector.sumDx /= norm
-//                vector.sumAbsDx /= norm
-//                vector.sumDy /= norm
-//                vector.sumAbsDy /= norm
-//                vectors[i] = vector
-//            }
-//        }
-//
-//        return Descriptor(keypoint: keypoint, vector: vectors)
-//    }
 }
