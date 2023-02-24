@@ -143,7 +143,8 @@ final class SURFMetalOctave {
         let interpolateFunction = InterpolateFunction(
             device: device,
             octave: octaveCounter,
-            sampleImage: SAMPLE_IMAGE
+            sampleImage: SAMPLE_IMAGE,
+            padding: padding
         )
 
         let extremaResultBuffer: DynamicBuffer<Coordinate> = DynamicBuffer(

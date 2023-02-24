@@ -35,7 +35,7 @@ struct SURFMetalApp: App {
     private let lenaMetalBitmap = MetalBitmap(device: device, name: "Lena", cgImage: loadImage(named: "lena")).normalized()
     private let lenaSurf = SURFIPOL(width: 1024, height: 1024)
     private let lenaBitmap = Bitmap(cgImage: loadImage(named: "lena")).normalized()
-//    private let lenaSurfFile = try! IPOLSURFFile(contentsOf: Bundle.main.url(forResource: "lena", withExtension: "surf")!)
+    private let lenaSurfFile = try! IPOLSURFFile(contentsOf: Bundle.main.url(forResource: "lena", withExtension: "surf")!)
 
 //    private let testSurfMetal = SURFMetal(width: 480, height: 640)
 //    private let testSurfIpol = SURFIPOL(width: 480, height: 640)
@@ -79,10 +79,10 @@ struct SURFMetalApp: App {
                         sourceFeatures: lenaMetalSurf.getKeypoints(image: lenaMetalBitmap).map {
                             KeypointViewModel(x: $0.keypoint.x, y: $0.keypoint.y, scale: $0.keypoint.scale, orientation: $0.keypoint.orientation)
                         },
-//                        targetFeatures: lenaSurfFile.contents.map {
-//                            KeypointViewModel(x: $0.x, y: $0.y, scale: $0.scale, orientation: $0.orientation)
-//                        },
-                        targetFeatures: [],
+                        targetFeatures: lenaSurfFile.contents.map {
+                            KeypointViewModel(x: $0.x, y: $0.y, scale: $0.scale, orientation: $0.orientation)
+                        },
+//                        targetFeatures: [],
                         zoom: 2.0
                     )
                 }

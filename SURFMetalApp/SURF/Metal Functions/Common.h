@@ -15,24 +15,24 @@
 using namespace metal;
 
 
-
+// IntegralImage
 class IntegralImage {
-    texture2d<uint, access::read> texture [[texture(1)]];
+    texture2d<uint, access::read> texture;
     int2 padding;
     
 public:
     IntegralImage(
-                  texture2d<uint, access::read> texture [[texture(1)]],
+                  texture2d<uint, access::read> texture,
                   int2 padding
                   ) : texture(texture), padding(padding)
     {
     }
     
-    int getPixel(const int2 coordinate) {
+    inline int getPixel(const int2 coordinate) {
         return (int)texture.read(uint2(padding + coordinate)).r;
     }
     
-    int squareConvolutionXY(
+    inline int squareConvolutionXY(
                                      const int a,
                                      const int b,
                                      const int c,
@@ -47,9 +47,25 @@ public:
         const int b2 = a2 - d;
         return getPixel(int2(b1, b2)) + getPixel(int2(a1, a2)) - getPixel(int2(b1, a2)) - getPixel(int2(a1, b2)); // Note: No L2-normalization is performed here.
     }
+    
+    // Convolution by a box [-1,+1]
+    inline int haarX(int x,int y,int lambda) {
+        return -(squareConvolutionXY(1,-lambda-1,-lambda-1,lambda*2+1, x, y)+
+                squareConvolutionXY(0,-lambda-1, lambda+1,lambda*2+1, x, y));
+        
+        
+    }
+
+    // Convolution by a box [-1;+1]
+    inline int haarY(int x,int y,int lambda) {
+        return -(squareConvolutionXY(-lambda-1,1, 2*lambda+1,-lambda-1, x, y)+
+             squareConvolutionXY(-lambda-1,0, 2*lambda+1,lambda+1, x, y));
+    }
+
 };
 
 
+// Patch
 class Patch {
     
     array<texture2d<float, access::read>, 4> textures;
