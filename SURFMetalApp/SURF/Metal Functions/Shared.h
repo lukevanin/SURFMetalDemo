@@ -31,6 +31,11 @@ typedef metal::int32_t EnumBackingType;
 #endif
 
 
+#define DESCRIPTOR_SIZE_1D 4
+
+#define DESCRIPTOR_LENGTH 16
+
+
 // MARK: - Types
 
 
@@ -47,6 +52,20 @@ struct Keypoint {
     float scale;
     float orientation;
     int32_t laplacian;
+};
+
+
+struct VectorDescriptor {
+    float sumDx;
+    float sumDy;
+    float sumAbsDx;
+    float sumAbsDy;
+};
+
+
+struct Descriptor {
+    struct Keypoint keypoint;
+    struct VectorDescriptor vector[DESCRIPTOR_LENGTH];
 };
 
 

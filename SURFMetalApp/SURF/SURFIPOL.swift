@@ -562,6 +562,26 @@ final class SURFIPOL {
             }
         }
         
-        return Descriptor(keypoint: keypoint, vector: vectors)
+        return Descriptor(
+            keypoint: keypoint,
+            vector: (
+                vectors[0x0],
+                vectors[0x1],
+                vectors[0x2],
+                vectors[0x3],
+                vectors[0x4],
+                vectors[0x5],
+                vectors[0x6],
+                vectors[0x7],
+                vectors[0x8],
+                vectors[0x9],
+                vectors[0xa],
+                vectors[0xb],
+                vectors[0xc],
+                vectors[0xd],
+                vectors[0xe],
+                vectors[0xf]
+            )
+        )
     }
 }

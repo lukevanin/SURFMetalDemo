@@ -15,6 +15,20 @@
 using namespace metal;
 
 
+constant float PI = 3.14159265358979323846;
+
+
+// Gaussian - should be computed as an array to be faster.
+inline float gaussian(float x, float y, float sig)
+{
+    return 1 / (2 * PI * sig * sig) * exp( -(x * x + y * y) / (2 * sig * sig));
+}
+
+
+// Round-off functions
+inline int fround(float flt) { return (int) (flt+0.5f); }
+
+
 // IntegralImage
 class IntegralImage {
     texture2d<uint, access::read> texture;

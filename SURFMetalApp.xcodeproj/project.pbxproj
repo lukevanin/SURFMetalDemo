@@ -9,10 +9,12 @@
 /* Begin PBXBuildFile section */
 		FC2B4D1729A7A3F1009100D2 /* ExtremaFunction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2B4D1629A7A3F1009100D2 /* ExtremaFunction.swift */; };
 		FC2B4D1929A8B2BA009100D2 /* ExtremaFunction.metal in Sources */ = {isa = PBXBuildFile; fileRef = FC2B4D1829A8B2BA009100D2 /* ExtremaFunction.metal */; };
-		FC2B4D1B29A8BD13009100D2 /* MetalBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2B4D1A29A8BD13009100D2 /* MetalBuffer.swift */; };
+		FC2B4D1B29A8BD13009100D2 /* MetalManagedBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2B4D1A29A8BD13009100D2 /* MetalManagedBuffer.swift */; };
 		FC2B4D1D29A8D01E009100D2 /* InterpolateFunction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2B4D1C29A8D01E009100D2 /* InterpolateFunction.swift */; };
 		FC2B4D1F29A8D26C009100D2 /* InterpolateFunction.metal in Sources */ = {isa = PBXBuildFile; fileRef = FC2B4D1E29A8D26C009100D2 /* InterpolateFunction.metal */; };
 		FC2B4D2129A8D329009100D2 /* Common.h in Sources */ = {isa = PBXBuildFile; fileRef = FC2B4D2029A8D329009100D2 /* Common.h */; };
+		FC2B4D2329A93C87009100D2 /* DescriptorsFunction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2B4D2229A93C87009100D2 /* DescriptorsFunction.swift */; };
+		FC2B4D2529A93E2E009100D2 /* DescriptorsFunction.metal in Sources */ = {isa = PBXBuildFile; fileRef = FC2B4D2429A93E2E009100D2 /* DescriptorsFunction.metal */; };
 		FC673F04299B93ED001703A3 /* SURFMetalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC673F03299B93ED001703A3 /* SURFMetalApp.swift */; };
 		FC673F06299B93ED001703A3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC673F05299B93ED001703A3 /* ContentView.swift */; };
 		FC673F08299B93ED001703A3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FC673F07299B93ED001703A3 /* Assets.xcassets */; };
@@ -59,10 +61,12 @@
 /* Begin PBXFileReference section */
 		FC2B4D1629A7A3F1009100D2 /* ExtremaFunction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtremaFunction.swift; sourceTree = "<group>"; };
 		FC2B4D1829A8B2BA009100D2 /* ExtremaFunction.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = ExtremaFunction.metal; sourceTree = "<group>"; };
-		FC2B4D1A29A8BD13009100D2 /* MetalBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalBuffer.swift; sourceTree = "<group>"; };
+		FC2B4D1A29A8BD13009100D2 /* MetalManagedBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalManagedBuffer.swift; sourceTree = "<group>"; };
 		FC2B4D1C29A8D01E009100D2 /* InterpolateFunction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = InterpolateFunction.swift; sourceTree = "<group>"; };
 		FC2B4D1E29A8D26C009100D2 /* InterpolateFunction.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = InterpolateFunction.metal; sourceTree = "<group>"; };
 		FC2B4D2029A8D329009100D2 /* Common.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Common.h; sourceTree = "<group>"; };
+		FC2B4D2229A93C87009100D2 /* DescriptorsFunction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DescriptorsFunction.swift; sourceTree = "<group>"; };
+		FC2B4D2429A93E2E009100D2 /* DescriptorsFunction.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = DescriptorsFunction.metal; sourceTree = "<group>"; };
 		FC673F00299B93ED001703A3 /* SURFMetalApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SURFMetalApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FC673F03299B93ED001703A3 /* SURFMetalApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SURFMetalApp.swift; sourceTree = "<group>"; };
 		FC673F05299B93ED001703A3 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -191,7 +195,7 @@
 				FCDB041C29A60D9800494CEE /* SURFMetal.swift */,
 				FCDB042D29A643F200494CEE /* MetalFunction.swift */,
 				FCDB041E29A617D400494CEE /* MetalExtensions.swift */,
-				FC2B4D1A29A8BD13009100D2 /* MetalBuffer.swift */,
+				FC2B4D1A29A8BD13009100D2 /* MetalManagedBuffer.swift */,
 				FCDB042029A61C2600494CEE /* Metal Functions */,
 				FC673F1C299BABAA001703A3 /* FastHessian.swift */,
 				FC673F16299BA329001703A3 /* Bitmap.swift */,
@@ -222,6 +226,8 @@
 				FC2B4D1829A8B2BA009100D2 /* ExtremaFunction.metal */,
 				FC2B4D1C29A8D01E009100D2 /* InterpolateFunction.swift */,
 				FC2B4D1E29A8D26C009100D2 /* InterpolateFunction.metal */,
+				FC2B4D2229A93C87009100D2 /* DescriptorsFunction.swift */,
+				FC2B4D2429A93E2E009100D2 /* DescriptorsFunction.metal */,
 			);
 			path = "Metal Functions";
 			sourceTree = "<group>";
@@ -329,6 +335,7 @@
 				FCDB042829A62FFF00494CEE /* MetalBitmap.swift in Sources */,
 				FCDB043029A6440500494CEE /* HessianFunction.swift in Sources */,
 				FC673F17299BA329001703A3 /* Bitmap.swift in Sources */,
+				FC2B4D2529A93E2E009100D2 /* DescriptorsFunction.metal in Sources */,
 				FC673F25299CDEF1001703A3 /* BaySURFFile.swift in Sources */,
 				FC2B4D1F29A8D26C009100D2 /* InterpolateFunction.metal in Sources */,
 				FC673F19299BA5A9001703A3 /* IntegralImage.swift in Sources */,
@@ -337,9 +344,10 @@
 				FC2B4D1D29A8D01E009100D2 /* InterpolateFunction.swift in Sources */,
 				FC673F04299B93ED001703A3 /* SURFMetalApp.swift in Sources */,
 				FC673F3B29A4B5B4001703A3 /* CoreGraphicsExtensions.swift in Sources */,
-				FC2B4D1B29A8BD13009100D2 /* MetalBuffer.swift in Sources */,
+				FC2B4D1B29A8BD13009100D2 /* MetalManagedBuffer.swift in Sources */,
 				FC673F21299CCC67001703A3 /* Math.swift in Sources */,
 				FC673F2B299E557D001703A3 /* SURFIPOL.swift in Sources */,
+				FC2B4D2329A93C87009100D2 /* DescriptorsFunction.swift in Sources */,
 				FCDB042229A61C4100494CEE /* IntegralImageFunction.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

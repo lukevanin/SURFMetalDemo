@@ -55,10 +55,12 @@ final class SURFMetalOctave {
     let hessianFunctions: [HessianFunction]
     let extremaFunction: ExtremaFunction
     let interpolateFunction: InterpolateFunction
+    let descriptorsFunction: DescriptorsFunction
 
     let extremaResultBuffer: DynamicBuffer<Coordinate>
     let keypointResultsBuffer: DynamicBuffer<Keypoint>
-    
+    let descriptorResultsBuffer: DynamicBuffer<Descriptor>
+
     let hessianTextures: [MTLTexture]
     let laplacianTextures: [MTLTexture]
 
@@ -146,6 +148,11 @@ final class SURFMetalOctave {
             sampleImage: SAMPLE_IMAGE,
             padding: padding
         )
+        
+        let descriptorsFunction = DescriptorsFunction(
+            device: device,
+            padding: padding
+        )
 
         let extremaResultBuffer: DynamicBuffer<Coordinate> = DynamicBuffer(
             device: device,
@@ -159,6 +166,12 @@ final class SURFMetalOctave {
             capacity: 1024 * 8
         )
 
+        let descriptorResultsBuffer: DynamicBuffer<Descriptor> = DynamicBuffer(
+            device: device,
+            name: "Descriptors",
+            capacity: 1024 * 8
+        )
+
         self.octaveCounter = octaveCounter
         self.width = width
         self.height = height
@@ -169,8 +182,10 @@ final class SURFMetalOctave {
         self.hessianFunctions = hessianFunctions
         self.extremaFunction = extremaFunction
         self.interpolateFunction = interpolateFunction
+        self.descriptorsFunction = descriptorsFunction
         self.extremaResultBuffer = extremaResultBuffer
         self.keypointResultsBuffer = keypointResultsBuffer
+        self.descriptorResultsBuffer = descriptorResultsBuffer
     }
     
     func findKeypoints(commandBuffer: MTLCommandBuffer, integralImageTexture: MTLTexture) {
@@ -199,6 +214,7 @@ final class SURFMetalOctave {
             )
         }
         
+        extremaResultBuffer.allocate(0)
         extremaFunction.encode(
             commandBuffer: commandBuffer,
             width: width,
@@ -209,12 +225,25 @@ final class SURFMetalOctave {
     }
     
     func interpolateKeypoints(commandBuffer: MTLCommandBuffer, integralImageTexture: MTLTexture) {
+        keypointResultsBuffer.allocate(0)
         interpolateFunction.encode(
             commandBuffer: commandBuffer,
             integralImageInputTexture: integralImageTexture,
             hessianInputTextures: hessianTextures,
+            laplacianInputTextures: laplacianTextures,
             extremaInputBuffer: extremaResultBuffer,
             keypointsOutputBuffer: keypointResultsBuffer
+        )
+    }
+    
+    func getDescriptors(commandBuffer: MTLCommandBuffer, integralImageTexture: MTLTexture) {
+        logger.info("Getting \(self.keypointResultsBuffer.count) descriptors")
+        descriptorResultsBuffer.allocate(keypointResultsBuffer.count)
+        descriptorsFunction.encode(
+            commandBuffer: commandBuffer,
+            integralImageInputTexture: integralImageTexture,
+            keypointsInputBuffer: keypointResultsBuffer,
+            descriptorsOutputBuffer: descriptorResultsBuffer
         )
     }
 }
@@ -366,76 +395,18 @@ final class SURFMetal {
             }
         }
         
-        // Find keypoints
-        var keypoints: [Keypoint] = []
-        
-        for octaveCounter in 0 ..< OCTAVE {
-            var octaveKeypointCount = 0
-            let octave = octaves[octaveCounter]
-            let results = octave.keypointResultsBuffer
-            for i in 0 ..< results.count {
-                keypoints.append(results[i])
-                octaveKeypointCount += 1
+        capture("descriptors", commandQueue: commandQueue, capture: false) { commandBuffer in
+            for octaveCounter in 0 ..< OCTAVE {
+                let octave = octaves[octaveCounter]
+                octave.getDescriptors(
+                    commandBuffer: commandBuffer,
+                    integralImageTexture: integralImageTexture
+                )
             }
-            logger.info("getKeypoints: octave=\(octaveCounter): Found \(octaveKeypointCount) keypoints for octave")
         }
 
-        
-//        for octaveCounter in 0 ..< OCTAVE {
-//            let octave = octaves[octaveCounter]
-//            let pow2 = Int(pow(2.0, Float(octaveCounter + 1)))
-////            let w = octave.width
-////            let h = octave.height
-//            let sample = Int(pow(Float(SAMPLE_IMAGE), Float(octaveCounter))) // Sampling step
-//
-//            #warning("TODO: Separate hessian computation from keypoint detection")
-//
-//            // Interpolate keypoints
-//            var octaveKeypointCount = 0
-//
-//            let extrema = octave.extremaResultBuffer
-//            logger.info("getKeypoints: octave=\(octaveCounter): Interpolating keypoints \(extrema.count)")
-//
-//            for i in 0 ..< extrema.count {
-//                let extremum = extrema[i]
-                
-//                let x_ = Float(Int(extremum.x) * sample);
-//                let y_ = Float(Int(extremum.y) * sample);
-//                let s_ = 0.4 * Float(pow2 * (Int(extremum.interval) + 1) + 2); // box size or scale
-
-//                let keypoint = Keypoint(
-//                    x: x_,
-//                    y: y_,
-//                    scale: s_,
-//                    orientation: 0,
-//                    laplacian: 0
-//                )
-                
-//                let keypoint = interpolationScaleSpace(
-//                    integralImage: integralImage,
-//                    octave: octaveCounter,
-//                    interval: Int(extremum.interval),
-//                    x: Int(extremum.x),
-//                    y: Int(extremum.y),
-//                    sample: sample,
-//                    pow2: pow2
-//                )
-//
-//                guard let keypoint else {
-//                    continue
-//                }
-//
-//                keypoints.append(keypoint)
-//                octaveKeypointCount += 1
-//            }
-//
-//            logger.info("getKeypoints: octave=\(octaveCounter): Found \(octaveKeypointCount) keypoints for octave")
-//        }
-        
-        // Compute the descriptors
-        logger.info("getKeypoints: Found \(keypoints.count) total keypoints")
-        let descriptors = getDescriptors(integralImage: integralImage, keypoints: keypoints)
-        return descriptors
+        let output = getDescriptors()
+        return output
     }
 
     private func makeIntegralImage(commandBuffer: MTLCommandBuffer, symmetrizedBitmap: MetalBitmap) {
@@ -458,255 +429,131 @@ final class SURFMetal {
         )
     }
     
-    // Scale space interpolation as described in Lowe
-//    private func interpolationScaleSpace(
-//        integralImage: MetalIntegralImage,
-//        octave o: Int,
-//        interval i: Int,
-//        x: Int,
-//        y: Int,
-//        sample: Int,
-//        pow2 octaveValue: Int
-//    ) -> Keypoint? {
-//        
-//        let img = octaves[o].hessians
-//
-//        //If we are outside the image...
-//        if x <= 0 || y <= 0 || x >= (img[i].width - 2) || y >= (img[i].height - 2) {
-//            return nil
+    private func getDescriptors() -> [Descriptor] {
+        // Aggregate keypoints
+        var output: [Descriptor] = []
+        
+        for octaveCounter in 0 ..< OCTAVE {
+            var octaveKeypointCount = 0
+            let octave = octaves[octaveCounter]
+            let descriptors = octave.descriptorResultsBuffer
+            for i in 0 ..< descriptors.count {
+                output.append(descriptors[i])
+                octaveKeypointCount += 1
+            }
+            logger.info("getKeypoints: octave=\(octaveCounter): Found \(octaveKeypointCount) keypoints for octave")
+        }
+        
+        // Compute the descriptors
+        logger.info("getKeypoints: Found \(output.count) total keypoints")
+//        let descriptors = getDescriptors(integralImage: integralImage, keypoints: keypoints)
+        return output
+    }
+    
+//    private func getDescriptors(integralImage: MetalIntegralImage, keypoints: [Keypoint]) -> [Descriptor] {
+//        var descriptors: [Descriptor] = []
+//        for keypoint in keypoints {
+//            let descriptor = makeDescriptor(integralImage: integralImage, keypoint: keypoint)
+//            descriptors.append(descriptor)
 //        }
-//        
-//        // Nabla X
-//        let dx = (img[i][x + 1, y] - img[i][x - 1, y]) / 2
-//        let dy = (img[i][x, y + 1] - img[i][x, y - 1]) / 2
-//        let di = (img[i][x, y] - img[i][x, y]) / 2
-//        #warning("FIXME: Compute gradient in i")
-//        // let di = (img[i + 1][x, y] - img[i - 1][x, y]) / 2
-//        
-//        //Hessian X
-//        let a: Float32 = img[i][x, y]
-//        let dxx: Float32 = (img[i][x + 1, y] + img[i][x - 1, y]) - 2 * a
-//        let dyy: Float32 = (img[i][x, y + 1] + img[i][x, y + 1]) - 2 * a
-//        let dii: Float32 = (img[i - 1][x, y] + img[i + 1][x, y]) - 2 * a
-//        
-//        let dxy: Float32 = (img[i][x + 1, y + 1] - img[i][x + 1, y - 1] - img[i][x - 1, y + 1] + img[i][x - 1, y - 1]) / 4
-//        let dxi: Float32 = (img[i + 1][x + 1, y] - img[i + 1][x - 1, y] - img[i - 1][x + 1, y] + img[i - 1][x - 1, y]) / 4
-//        let dyi: Float32 = (img[i + 1][x, y + 1] - img[i + 1][x, y - 1] - img[i - 1][x, y + 1] + img[i - 1][x, y - 1]) / 4
-//        
-//        // Det
-//        let det: Float32 = dxx * dyy * dii - dxx * dyi * dyi - dyy * dxi * dxi + 2 * dxi * dyi * dxy - dii * dxy * dxy
-//
-//        if det == 0 {
-//            // Matrix must be inversible - maybe useless.
-//            return nil
-//        }
-//        
-//        let mx = -1 / det * (dx * (dyy * dii - dyi * dyi) + dy * (dxi * dyi - dii * dxy) + di * (dxy * dyi - dyy * dxi))
-//        let my = -1 / det * (dx * (dxi * dyi - dii * dxy) + dy * (dxx * dii - dxi * dxi) + di * (dxy * dxi - dxx * dyi))
-//        let mi = -1 / det * (dx * (dxy * dyi - dyy * dxi) + dy * (dxy * dxi - dxx * dyi) + di * (dxx * dyy - dxy * dxy))
-//
-//        // If the point is stable
-//        guard abs(mx) < 1 && abs(my) < 1 && abs(mi) < 1 else {
-//            return nil
-//        }
-//        
-//        let x_ = Float(sample) * (Float(x) + mx) + 0.5 // Center the pixels value
-//        let y_ = Float(sample) * (Float(y) + my) + 0.5
-//        let s_ = 0.4 * (1 + Float(octaveValue) * (Float(i) + mi + 1))
-//        let orientation = getOrientation(integralImage: integralImage, x: x_, y: y_, scale: s_)
-//        let signLaplacian = octaves[o].signLaplacians[i][x, y]
-//        
-//        return Keypoint(
-//            x: x_,
-//            y: y_,
-//            scale: s_,
-//            orientation: orientation,
-//            laplacian: Int32(signLaplacian)
-//        )
+//        return descriptors
 //    }
     
-    private func getOrientation(integralImage: MetalIntegralImage, x: Float, y: Float, scale: Float) -> Float {
-        let sectors = NUMBER_SECTOR
-        
-        #warning("TODO: Pre-allocate and reuse arrays")
-        var haarResponseX: [Float] = Array(repeating: 0, count: sectors)
-        var haarResponseY: [Float] = Array(repeating: 0, count: sectors)
-        var haarResponseSectorX: [Float] = Array(repeating: 0, count: sectors)
-        var haarResponseSectorY: [Float] = Array(repeating: 0, count: sectors)
-        var answerX: Int
-        var answerY: Int
-        var gauss: Float
-        
-        var theta: Int
-        
-        // Computation of the contribution of each angular sectors.
-        for i in -6 ... 6 {
-            for j in -6 ... 6 {
-                
-                if (i * i + j * j) <= 36 {
-                    
-                    answerX = integralImage.haarX(
-                        x: Int(Float(x) + scale * Float(i)),
-                        y: Int(Float(y) + scale * Float(j)),
-                        lambda: fround(2 * scale)
-                    )
-                    answerY = integralImage.haarY(
-                        x: Int(Float(x) + scale * Float(i)),
-                        y: Int(Float(y) + scale * Float(j)),
-                        lambda: fround(2 * scale)
-                    )
-                    
-                    // Associated angle
-                    theta = Int(atan2(Float(answerY), Float(answerX)) * Float(sectors) / (2 * pi))
-                    theta = ((theta >= 0) ? (theta) : (theta + sectors))
-                    
-                    // Gaussian weight
-                    gauss = gaussian(x: Float(i), y: Float(j), sig: 2)
-                    
-                    // Cumulative answers
-                    haarResponseSectorX[theta] += Float(answerX) * gauss
-                    haarResponseSectorY[theta] += Float(answerY) * gauss
-                }
-            }
-        }
-
-        // Compute a windowed answer
-        for i in 0 ..< sectors {
-            for j in -sectors / 12 ... sectors / 12 {
-                if 0 <= i + j && i + j < sectors {
-                    haarResponseX[i] += haarResponseSectorX[i + j]
-                    haarResponseY[i] += haarResponseSectorY[i + j]
-                }
-                else if i + j < 0 {
-                    // The answer can be on any quadrant of the unit circle
-                    haarResponseX[i] += haarResponseSectorX[sectors + i + j]
-                    haarResponseY[i] += haarResponseSectorY[i + j + sectors]
-                }
-                else {
-                    haarResponseX[i] += haarResponseSectorX[i + j - sectors]
-                    haarResponseY[i] += haarResponseSectorY[i + j - sectors]
-                }
-            }
-        }
-                
-        // Find out the maximum answer
-        var max = haarResponseX[0] * haarResponseX[0] + haarResponseY[0] * haarResponseY[0]
-        
-        var t = 0
-        for i in 1 ..< sectors {
-            let norm = haarResponseX[i] * haarResponseX[i] + haarResponseY[i] * haarResponseY[i]
-            t = (max < norm) ? i : t
-            max = (max < norm) ? norm : max
-        }
-
-        // Return the angle ; better than atan which is not defined in pi/2
-        return atan2(haarResponseY[t], haarResponseX[t])
-    }
-    
-    private func getDescriptors(integralImage: MetalIntegralImage, keypoints: [Keypoint]) -> [Descriptor] {
-        var descriptors: [Descriptor] = []
-        for keypoint in keypoints {
-            let descriptor = makeDescriptor(integralImage: integralImage, keypoint: keypoint)
-            descriptors.append(descriptor)
-        }
-        return descriptors
-    }
-    
-    private func makeDescriptor(integralImage: MetalIntegralImage, keypoint: Keypoint) -> Descriptor {
-        let scale: Float = keypoint.scale
-
-        // Divide in a 4x4 zone the space around the interest point
-
-        // First compute the orientation.
-        let cosP = cos(keypoint.orientation)
-        let sinP = sin(keypoint.orientation)
-        var norm: Float = 0
-        var u: Float
-        var v: Float
-        var gauss: Float
-        var responseU: Float
-        var responseV: Float
-        var responseX: Int
-        var responseY: Int
-        
-        let zeroVector = VectorDescriptor(sumDx: 0, sumDy: 0, sumAbsDx: 0, sumAbsDy: 0)
-        let vectorCount = DESCRIPTOR_SIZE_1D * DESCRIPTOR_SIZE_1D
-        var vectors: [VectorDescriptor] = Array(repeating: zeroVector, count: vectorCount)
-        
-        // Divide in 16 sectors the space around the interest point.
-        for i in 0 ..< DESCRIPTOR_SIZE_1D {
-            for j in 0 ..< DESCRIPTOR_SIZE_1D {
-                
-                var sumDx: Float = 0
-                var sumAbsDx: Float = 0
-                var sumDy: Float = 0
-                var sumAbsDy: Float = 0
-
-                // Then each 4x4 is subsampled into a 5x5 zone
-                for k in 0 ..< 5 {
-                    for l in 0 ..< 5  {
-                        // We pre compute Haar answers
-                        #warning("TODO: Use simd matrix multiplication")
-                        u = (keypoint.x + scale * (cosP * ((Float(i) - 2) * 5 + Float(k) + 0.5) - sinP * ((Float(j) - 2) * 5 + Float(l) + 0.5)))
-                        v = (keypoint.y + scale * (sinP * ((Float(i) - 2) * 5 + Float(k) + 0.5) + cosP * ((Float(j) - 2) * 5 + Float(l) + 0.5)))
-                        responseX = integralImage.haarX(
-                            x: Int(u),
-                            y: Int(v),
-                            lambda: fround(scale)
-                        ) // (u,v) are already translated of 0.5, which means
-                                                                   // that there is no round-off to perform: one takes
-                                                                   // the integer part of the coordinates.
-                        responseY = integralImage.haarY(
-                            x: Int(u),
-                            y: Int(v),
-                            lambda: fround(scale)
-                        )
-                        
-                        // Gaussian weight
-                        gauss = gaussian(
-                            x: ((Float(i) - 2) * 5 + Float(k) + 0.5),
-                            y: ((Float(j) - 2) * 5 + Float(l) + 0.5),
-                            sig: 3.3
-                        )
-                        
-                        // Rotation of the axis
-                        #warning("TODO: Use simd matrix multiplication")
-                        //responseU = gauss*( -responseX*sinP + responseY*cosP);
-                        //responseV = gauss*(responseX*cosP + responseY*sinP);
-                        responseU = gauss * (+Float(responseX) * cosP + Float(responseY) * sinP)
-                        responseV = gauss * (-Float(responseX) * sinP + Float(responseY) * cosP)
-                        
-                        // The descriptors.
-                        sumDx += responseU
-                        sumAbsDx += abs(responseU)
-                        sumDy += responseV
-                        sumAbsDy += abs(responseV)
-                    }
-                }
-                
-                let index = DESCRIPTOR_SIZE_1D * i + j
-                let vector = VectorDescriptor(sumDx: sumDx, sumDy: sumDy, sumAbsDx: sumAbsDx, sumAbsDy: sumAbsDy)
-                vectors[index] = vector
-                
-                // Compute the norm of the vector
-                norm += sumAbsDx * sumAbsDx + sumAbsDy * sumAbsDy + sumDx * sumDx + sumDy * sumDy
-            }
-        }
-        // Normalization of the descriptors in order to improve invariance to contrast change
-        // and whitening the descriptors.
-        norm = sqrtf(norm)
-        
-        if norm != 0 {
-            for i in 0 ..< vectorCount {
-                var vector = vectors[i]
-                vector.sumDx /= norm
-                vector.sumAbsDx /= norm
-                vector.sumDy /= norm
-                vector.sumAbsDy /= norm
-                vectors[i] = vector
-            }
-        }
-        
-        return Descriptor(keypoint: keypoint, vector: vectors)
-    }
+//    private func makeDescriptor(integralImage: MetalIntegralImage, keypoint: Keypoint) -> Descriptor {
+//        let scale: Float = keypoint.scale
+//
+//        // Divide in a 4x4 zone the space around the interest point
+//
+//        // First compute the orientation.
+//        let cosP = cos(keypoint.orientation)
+//        let sinP = sin(keypoint.orientation)
+//        var norm: Float = 0
+//        var u: Float
+//        var v: Float
+//        var gauss: Float
+//        var responseU: Float
+//        var responseV: Float
+//        var responseX: Int
+//        var responseY: Int
+//
+//        let zeroVector = VectorDescriptor(sumDx: 0, sumDy: 0, sumAbsDx: 0, sumAbsDy: 0)
+//        let vectorCount = DESCRIPTOR_SIZE_1D * DESCRIPTOR_SIZE_1D
+//        var vectors: [VectorDescriptor] = Array(repeating: zeroVector, count: vectorCount)
+//
+//        // Divide in 16 sectors the space around the interest point.
+//        for i in 0 ..< DESCRIPTOR_SIZE_1D {
+//            for j in 0 ..< DESCRIPTOR_SIZE_1D {
+//
+//                var sumDx: Float = 0
+//                var sumAbsDx: Float = 0
+//                var sumDy: Float = 0
+//                var sumAbsDy: Float = 0
+//
+//                // Then each 4x4 is subsampled into a 5x5 zone
+//                for k in 0 ..< 5 {
+//                    for l in 0 ..< 5  {
+//                        // We pre compute Haar answers
+//                        #warning("TODO: Use simd matrix multiplication")
+//                        u = (keypoint.x + scale * (cosP * ((Float(i) - 2) * 5 + Float(k) + 0.5) - sinP * ((Float(j) - 2) * 5 + Float(l) + 0.5)))
+//                        v = (keypoint.y + scale * (sinP * ((Float(i) - 2) * 5 + Float(k) + 0.5) + cosP * ((Float(j) - 2) * 5 + Float(l) + 0.5)))
+//                        responseX = integralImage.haarX(
+//                            x: Int(u),
+//                            y: Int(v),
+//                            lambda: fround(scale)
+//                        ) // (u,v) are already translated of 0.5, which means
+//                                                                   // that there is no round-off to perform: one takes
+//                                                                   // the integer part of the coordinates.
+//                        responseY = integralImage.haarY(
+//                            x: Int(u),
+//                            y: Int(v),
+//                            lambda: fround(scale)
+//                        )
+//
+//                        // Gaussian weight
+//                        gauss = gaussian(
+//                            x: ((Float(i) - 2) * 5 + Float(k) + 0.5),
+//                            y: ((Float(j) - 2) * 5 + Float(l) + 0.5),
+//                            sig: 3.3
+//                        )
+//
+//                        // Rotation of the axis
+//                        #warning("TODO: Use simd matrix multiplication")
+//                        //responseU = gauss*( -responseX*sinP + responseY*cosP);
+//                        //responseV = gauss*(responseX*cosP + responseY*sinP);
+//                        responseU = gauss * (+Float(responseX) * cosP + Float(responseY) * sinP)
+//                        responseV = gauss * (-Float(responseX) * sinP + Float(responseY) * cosP)
+//
+//                        // The descriptors.
+//                        sumDx += responseU
+//                        sumAbsDx += abs(responseU)
+//                        sumDy += responseV
+//                        sumAbsDy += abs(responseV)
+//                    }
+//                }
+//
+//                let index = DESCRIPTOR_SIZE_1D * i + j
+//                let vector = VectorDescriptor(sumDx: sumDx, sumDy: sumDy, sumAbsDx: sumAbsDx, sumAbsDy: sumAbsDy)
+//                vectors[index] = vector
+//
+//                // Compute the norm of the vector
+//                norm += sumAbsDx * sumAbsDx + sumAbsDy * sumAbsDy + sumDx * sumDx + sumDy * sumDy
+//            }
+//        }
+//        // Normalization of the descriptors in order to improve invariance to contrast change
+//        // and whitening the descriptors.
+//        norm = sqrtf(norm)
+//
+//        if norm != 0 {
+//            for i in 0 ..< vectorCount {
+//                var vector = vectors[i]
+//                vector.sumDx /= norm
+//                vector.sumAbsDx /= norm
+//                vector.sumDy /= norm
+//                vector.sumAbsDy /= norm
+//                vectors[i] = vector
+//            }
+//        }
+//
+//        return Descriptor(keypoint: keypoint, vector: vectors)
+//    }
 }

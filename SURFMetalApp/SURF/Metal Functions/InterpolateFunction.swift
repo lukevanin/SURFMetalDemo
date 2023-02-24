@@ -33,9 +33,11 @@ final class InterpolateFunction {
         commandBuffer: MTLCommandBuffer,
         integralImageInputTexture: MTLTexture,
         hessianInputTextures: [MTLTexture],
+        laplacianInputTextures: [MTLTexture],
         extremaInputBuffer: DynamicBuffer<Coordinate>,
         keypointsOutputBuffer: DynamicBuffer<Keypoint>
     ) {
+        precondition(laplacianInputTextures.count == hessianInputTextures.count)
         function.encode(
             commandBuffer: commandBuffer,
             length: extremaInputBuffer.count,
@@ -48,7 +50,8 @@ final class InterpolateFunction {
                 integralImageInputTexture,
             ],
             textureArrays: [
-                hessianInputTextures
+                hessianInputTextures,
+                laplacianInputTextures,
             ]
         )
     }

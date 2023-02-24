@@ -17,19 +17,7 @@ constant uint OCTAVE [[ function_constant(0) ]];
 constant uint SAMPLE_IMAGE [[ function_constant(1) ]];
 constant uint PADDING [[ function_constant(2) ]];
 
-constant float PI = 3.14159265358979323846;
 constant int NUMBER_SECTOR = 20;
-
-
-// Gaussian - should be computed as an array to be faster.
-inline float gaussian(float x, float y, float sig)
-{
-    return 1 / (2 * PI * sig * sig) * exp( -(x * x + y * y) / (2 * sig * sig));
-}
-
-
-// Round-off functions
-inline int fround(float flt) { return (int) (flt+0.5f); }
 
 
 // Compute the orientation to assign to a keypoint
@@ -115,6 +103,7 @@ kernel void interpolate(device Coordinate * coordinatesBuffer [[ buffer(0) ]],
                         device atomic_uint * resultsCount [[ buffer(2) ]],
                         texture2d<uint, access::read> integralImageTexture [[ texture(3) ]],
                         array<texture2d<float, access::read>, 4> hessianTextures [[ texture(4) ]],
+                        array<texture2d<ushort, access::read>, 4> laplacianTextures [[ texture(8) ]],
                         uint gid [[ thread_position_in_grid ]]) {
 
     const Coordinate coordinate = coordinatesBuffer[gid];
@@ -164,7 +153,7 @@ kernel void interpolate(device Coordinate * coordinatesBuffer [[ buffer(0) ]],
 #warning("TODO: Get orientation when computing descriptor")
     IntegralImage integralImage(integralImageTexture, int2(PADDING));
     const float orientation = getOrientation(integralImage, x_, y_, s_);
-    const int signLaplacian = 0; // octaves[o].signLaplacians[i][x, y]
+    const int signLaplacian = laplacianTextures[coordinate.interval].read(uint2(coordinate.x, coordinate.y)).r;
     
     threadgroup_barrier(metal::mem_flags::mem_threadgroup);
     const auto index = atomic_fetch_add_explicit(resultsCount, 1, memory_order_relaxed);
