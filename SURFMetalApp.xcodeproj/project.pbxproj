@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FC2B4D1729A7A3F1009100D2 /* ExtremaFunction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2B4D1629A7A3F1009100D2 /* ExtremaFunction.swift */; };
+		FC2B4D1929A8B2BA009100D2 /* ExtremaFunction.metal in Sources */ = {isa = PBXBuildFile; fileRef = FC2B4D1829A8B2BA009100D2 /* ExtremaFunction.metal */; };
+		FC2B4D1B29A8BD13009100D2 /* MetalBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2B4D1A29A8BD13009100D2 /* MetalBuffer.swift */; };
 		FC673F04299B93ED001703A3 /* SURFMetalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC673F03299B93ED001703A3 /* SURFMetalApp.swift */; };
 		FC673F06299B93ED001703A3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC673F05299B93ED001703A3 /* ContentView.swift */; };
 		FC673F08299B93ED001703A3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FC673F07299B93ED001703A3 /* Assets.xcassets */; };
@@ -51,6 +54,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		FC2B4D1629A7A3F1009100D2 /* ExtremaFunction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtremaFunction.swift; sourceTree = "<group>"; };
+		FC2B4D1829A8B2BA009100D2 /* ExtremaFunction.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = ExtremaFunction.metal; sourceTree = "<group>"; };
+		FC2B4D1A29A8BD13009100D2 /* MetalBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalBuffer.swift; sourceTree = "<group>"; };
 		FC673F00299B93ED001703A3 /* SURFMetalApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SURFMetalApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FC673F03299B93ED001703A3 /* SURFMetalApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SURFMetalApp.swift; sourceTree = "<group>"; };
 		FC673F05299B93ED001703A3 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -179,6 +185,7 @@
 				FCDB041C29A60D9800494CEE /* SURFMetal.swift */,
 				FCDB042D29A643F200494CEE /* MetalFunction.swift */,
 				FCDB041E29A617D400494CEE /* MetalExtensions.swift */,
+				FC2B4D1A29A8BD13009100D2 /* MetalBuffer.swift */,
 				FCDB042029A61C2600494CEE /* Metal Functions */,
 				FC673F1C299BABAA001703A3 /* FastHessian.swift */,
 				FC673F16299BA329001703A3 /* Bitmap.swift */,
@@ -204,6 +211,8 @@
 				FCDB042329A61DEF00494CEE /* IntegralImage.metal */,
 				FCDB042F29A6440500494CEE /* HessianFunction.swift */,
 				FCDB043129A754DA00494CEE /* HessianFunction.metal */,
+				FC2B4D1629A7A3F1009100D2 /* ExtremaFunction.swift */,
+				FC2B4D1829A8B2BA009100D2 /* ExtremaFunction.metal */,
 			);
 			path = "Metal Functions";
 			sourceTree = "<group>";
@@ -296,6 +305,7 @@
 				FC673F29299E5569001703A3 /* Descriptor.swift in Sources */,
 				FC673F1F299C1520001703A3 /* KeyPoint.swift in Sources */,
 				FCDB041D29A60D9800494CEE /* SURFMetal.swift in Sources */,
+				FC2B4D1729A7A3F1009100D2 /* ExtremaFunction.swift in Sources */,
 				FCDB041F29A617D400494CEE /* MetalExtensions.swift in Sources */,
 				FC673F3129A35946001703A3 /* Field.swift in Sources */,
 				FCDB042429A61DEF00494CEE /* IntegralImage.metal in Sources */,
@@ -304,6 +314,7 @@
 				FCDB042E29A643F200494CEE /* MetalFunction.swift in Sources */,
 				FCDB042C29A641E100494CEE /* MetalField.swift in Sources */,
 				FCDB042A29A6331100494CEE /* MetalIntegralImage.swift in Sources */,
+				FC2B4D1929A8B2BA009100D2 /* ExtremaFunction.metal in Sources */,
 				FC673F3529A3F459001703A3 /* IPOLSURFFile.swift in Sources */,
 				FCDB042829A62FFF00494CEE /* MetalBitmap.swift in Sources */,
 				FCDB043029A6440500494CEE /* HessianFunction.swift in Sources */,
@@ -314,6 +325,7 @@
 				FC673F13299B9416001703A3 /* SURFBay.swift in Sources */,
 				FC673F04299B93ED001703A3 /* SURFMetalApp.swift in Sources */,
 				FC673F3B29A4B5B4001703A3 /* CoreGraphicsExtensions.swift in Sources */,
+				FC2B4D1B29A8BD13009100D2 /* MetalBuffer.swift in Sources */,
 				FC673F21299CCC67001703A3 /* Math.swift in Sources */,
 				FC673F2B299E557D001703A3 /* SURFIPOL.swift in Sources */,
 				FCDB042229A61C4100494CEE /* IntegralImageFunction.swift in Sources */,

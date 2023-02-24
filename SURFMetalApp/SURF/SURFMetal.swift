@@ -53,11 +53,14 @@ final class SURFMetalOctave {
     let signLaplacians: [MetalBitmap]
     
     let hessianFunctions: [HessianFunction]
+    let extremaFunction: ExtremaFunction
+    
+    let extremaResultBuffer: DynamicBuffer<ExtremaResult>
     
     let hessianTextures: [MTLTexture]
     let laplacianTextures: [MTLTexture]
 
-    init(device: MTLDevice, octaveCounter: Int, width: Int, height: Int, padding: Int) {
+    init(device: MTLDevice, octaveCounter: Int, width: Int, height: Int, padding: Int, threshold: Int) {
         
         var hessians: [MetalField] = []
         var signLaplacians: [MetalBitmap] = []
@@ -126,6 +129,17 @@ final class SURFMetalOctave {
             hessianTextures.append(hessianTexture)
             laplacianTextures.append(laplacianTexture)
         }
+        
+        let extremaFunction = ExtremaFunction(
+            device: device,
+            threshold: threshold
+        )
+        
+        let extremaResultBuffer: DynamicBuffer<ExtremaResult> = DynamicBuffer(
+            device: device,
+            name: "Extrema",
+            count: 4096
+        )
 
         self.octaveCounter = octaveCounter
         self.width = width
@@ -135,6 +149,8 @@ final class SURFMetalOctave {
         self.hessianTextures = hessianTextures
         self.laplacianTextures = laplacianTextures
         self.hessianFunctions = hessianFunctions
+        self.extremaFunction = extremaFunction
+        self.extremaResultBuffer = extremaResultBuffer
     }
     
     func computeHessian(commandBuffer: MTLCommandBuffer, integralImageTexture: MTLTexture) {
@@ -163,6 +179,16 @@ final class SURFMetalOctave {
             )
         }
     }
+    
+    func computeExtrema(commandBuffer: MTLCommandBuffer) {
+        extremaFunction.encode(
+            commandBuffer: commandBuffer,
+            width: width,
+            height: height,
+            hessianInputTextures: hessianTextures,
+            resultsOutputBuffer: extremaResultBuffer
+        )
+    }
 }
 
 
@@ -185,7 +211,12 @@ final class SURFMetal {
     
     let octaves: [SURFMetalOctave]
     
-    init(device: MTLDevice = MTLCreateSystemDefaultDevice()!, width: Int, height: Int) {
+    init(
+        device: MTLDevice = MTLCreateSystemDefaultDevice()!,
+        width: Int,
+        height: Int,
+        threshold: Int = 1000
+    ) {
         
         let padding = PADDING
         
@@ -249,7 +280,8 @@ final class SURFMetal {
                 octaveCounter: octaveCounter,
                 width: octaveWidth,
                 height: octaveHeight,
-                padding: padding
+                padding: padding,
+                threshold: threshold
             )
             octaves.append(octave)
         }
@@ -266,7 +298,7 @@ final class SURFMetal {
         self.octaves = octaves
     }
         
-    func getKeypoints(image: MetalBitmap, threshold: Float = 1000) -> [Descriptor] {
+    func getKeypoints(image: MetalBitmap) -> [Descriptor] {
         let startTime = CFAbsoluteTimeGetCurrent()
         defer {
             let endTIme = CFAbsoluteTimeGetCurrent()
@@ -293,6 +325,10 @@ final class SURFMetal {
                     commandBuffer: commandBuffer,
                     integralImageTexture: integralImageTexture
                 )
+                
+                octave.computeExtrema(
+                    commandBuffer: commandBuffer
+                )
             }
         }
         
@@ -302,57 +338,49 @@ final class SURFMetal {
         for octaveCounter in 0 ..< OCTAVE {
             let octave = octaves[octaveCounter]
             let pow2 = Int(pow(2.0, Float(octaveCounter + 1)))
-            let w = octave.width
-            let h = octave.height
+//            let w = octave.width
+//            let h = octave.height
             let sample = Int(pow(Float(SAMPLE_IMAGE), Float(octaveCounter))) // Sampling step
 
             #warning("TODO: Separate hessian computation from keypoint detection")
             
-            // Find keypoints
-            logger.info("getKeypoints: octave=\(octaveCounter): Finding keypoints")
-            
-            // Detect keypoints
+            // Interpolate keypoints
             var octaveKeypointCount = 0
+            
+            let extrema = octave.extremaResultBuffer
+            logger.info("getKeypoints: octave=\(octaveCounter): Interpolating keypoints \(extrema.allocatedCount)")
 
-            for intervalCounter in 1 ..< INTERVAL - 1 {
-                var intervalKeypointCount = 0
-                logger.info("getKeypoints: octave=\(octaveCounter): interval=\(intervalCounter): Finding keypoints")
-
-                // border points are removed
-                for y in 1 ..< h - 1 {
-                    for x in 1 ..< w - 1 {
-                        guard isMaximum(
-                            imageStamp: octave.hessians,
-                            x: x,
-                            y: y,
-                            scale: intervalCounter,
-                            threshold: threshold
-                        ) else {
-                            continue
-                        }
-                        
-                        // Affine refinement is performed for a given octave and sampling
-                        let keypoint = interpolationScaleSpace(
-                            integralImage: integralImage,
-                            octave: octaveCounter,
-                            interval: intervalCounter,
-                            x: x,
-                            y: y,
-                            sample: sample,
-                            pow2: pow2
-                        )
-                        
-                        guard let keypoint else {
-                            continue
-                        }
-
-                        keypoints.append(keypoint)
-                        intervalKeypointCount += 1
-                    }
-                }
+            for i in 0 ..< extrema.allocatedCount {
+                let extremum = extrema[i]
                 
-                octaveKeypointCount += intervalKeypointCount
-                logger.info("getKeypoints: octave=\(octaveCounter): interval=\(intervalCounter): Found \(intervalKeypointCount) keypoints for interval")
+                let x_ = Float(Int(extremum.x) * sample);
+                let y_ = Float(Int(extremum.y) * sample);
+                let s_ = 0.4 * Float(pow2 * (Int(extremum.interval) + 1) + 2); // box size or scale
+
+                let keypoint = Keypoint(
+                    x: x_,
+                    y: y_,
+                    scale: s_,
+                    orientation: 0,
+                    laplacian: 0
+                )
+                
+//                let keypoint = interpolationScaleSpace(
+//                    integralImage: integralImage,
+//                    octave: octaveCounter,
+//                    interval: Int(extremum.interval),
+//                    x: Int(extremum.x) * sample,
+//                    y: Int(extremum.y) * sample,
+//                    sample: sample,
+//                    pow2: pow2
+//                )
+//
+//                guard let keypoint else {
+//                    continue
+//                }
+
+                keypoints.append(keypoint)
+                octaveKeypointCount += 1
             }
         
             logger.info("getKeypoints: octave=\(octaveCounter): Found \(octaveKeypointCount) keypoints for octave")
@@ -385,34 +413,33 @@ final class SURFMetal {
     }
     
     // Check if a point is a local maximum or not, and more than a given threshold.
-    private func isMaximum(imageStamp: [MetalField], x: Int, y: Int, scale: Int, threshold: Float) -> Bool {
-        let tmp = imageStamp[scale][x, y]
-        
-        guard tmp > threshold else {
-            return false
-        }
-        
-        for j in y - 1 ... y + 1 {
-            for i in x - 1 ... x + 1 {
-                if imageStamp[scale - 1][i, j] >= tmp {
-                    return false
-                }
-                if imageStamp[scale + 1][i, j] >= tmp {
-                    return false
-                }
-                // TODO: Should this be && instead of ||
-                if (x != i || y != j) && (imageStamp[scale][i, j] >= tmp) {
-                    return false
-                }
-            }
-        }
-        return true
-    }
+//    private func isMaximum(imageStamp: [MetalField], x: Int, y: Int, scale: Int, threshold: Float) -> Bool {
+//        let tmp = imageStamp[scale][x, y]
+//
+//        guard tmp > threshold else {
+//            return false
+//        }
+//
+//        for j in y - 1 ... y + 1 {
+//            for i in x - 1 ... x + 1 {
+//                if imageStamp[scale - 1][i, j] >= tmp {
+//                    return false
+//                }
+//                if imageStamp[scale + 1][i, j] >= tmp {
+//                    return false
+//                }
+//                // TODO: Should this be && instead of ||
+//                if (x != i || y != j) && (imageStamp[scale][i, j] >= tmp) {
+//                    return false
+//                }
+//            }
+//        }
+//        return true
+//    }
     
     // Scale space interpolation as described in Lowe
     private func interpolationScaleSpace(integralImage: MetalIntegralImage, octave o: Int, interval i: Int, x: Int, y: Int, sample: Int, pow2 octaveValue: Int) -> Keypoint? {
         
-//        let sample = Int(pow(Float(SAMPLE_IMAGE), Float(keypoint.octave))) // Sampling step
         let img = octaves[o].hessians
 
         //If we are outside the image...

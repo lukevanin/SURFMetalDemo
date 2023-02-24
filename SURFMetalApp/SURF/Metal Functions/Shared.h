@@ -34,5 +34,11 @@ typedef metal::int32_t EnumBackingType;
 // MARK: - Types
 
 
+struct ExtremaResult {
+    uint32_t x;
+    uint32_t y;
+    uint32_t interval;
+};
+
 
 #endif /* Shared_h */

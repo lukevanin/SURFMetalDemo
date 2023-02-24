@@ -6,114 +6,164 @@
 //
 
 import Foundation
+import OSLog
 import Metal
+
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "MetalFunction")
+
+
+final class MetalFunction {
+    
+    let device: MTLDevice
+    let name: String
+    let maxTotalThreadsPerThreadgroup: Int
+    let threadExecutionWidth: Int
+    let computePipelineState: MTLComputePipelineState
+    
+    init(device: MTLDevice, name: String, constantValues: MTLFunctionConstantValues?) {
+        let library = device.makeDefaultLibrary()!
+        let function: MTLFunction
+        if let constantValues {
+            function = try! library.makeFunction(name: name, constantValues: constantValues)
+        }
+        else {
+            function = library.makeFunction(name: name)!
+        }
+        let computePipelineState = try! device.makeComputePipelineState(function: function)
+        self.device = device
+        self.name = name
+        self.computePipelineState = computePipelineState
+        self.maxTotalThreadsPerThreadgroup = computePipelineState.maxTotalThreadsPerThreadgroup
+        self.threadExecutionWidth = computePipelineState.threadExecutionWidth
+    }
+
+    func encode(
+        commandBuffer: MTLCommandBuffer,
+        grid: MTLSize,
+        threads: MTLSize,
+        buffers: [MTLBuffer],
+        textures: [MTLTexture],
+        textureArrays: [[MTLTexture]]
+    ) {
+        let computeEncoder = commandBuffer.makeComputeCommandEncoder()!
+        computeEncoder.setComputePipelineState(computePipelineState)
+        var index = 0
+        for buffer in buffers {
+            logger.debug("Function \(self.name): Binding buffer \(buffer.label ?? "-anonymous-") at index #\(index)")
+            computeEncoder.setBuffer(buffer, offset: 0, index: index)
+            index += 1
+        }
+        for texture in textures {
+            logger.debug("Function \(self.name): Binding texture \(texture.label ?? "-anonymous-") at index #\(index)")
+            computeEncoder.setTexture(texture, index: index)
+            index += 1
+        }
+        for textureArray in textureArrays {
+            let labels = textureArray.map {
+                $0.label ?? "-anonymous-"
+            }
+            logger.debug("Function \(self.name): Binding textureArray[\(labels)] at index #\(index)")
+            let lastIndex = index + textureArray.count
+            computeEncoder.setTextures(textureArray, range: index ..< lastIndex)
+            index = lastIndex
+        }
+        logger.debug("Function \(self.name): Dispatch threads: Grid=\(grid.width)x\(grid.height)x\(grid.depth), Threads=\(threads.width)x\(threads.height)x\(threads.depth)")
+        computeEncoder.dispatchThreads(grid, threadsPerThreadgroup: threads)
+        computeEncoder.endEncoding()
+    }
+}
 
 
 final class MetalFunction1D {
     
-    let device: MTLDevice
-    let computePipelineState: MTLComputePipelineState
+    let function: MetalFunction
     
-    init(device: MTLDevice, name: String) {
-        self.device = device
-        let library = device.makeDefaultLibrary()!
-        let function = library.makeFunction(name: name)!
-        self.computePipelineState = try! device.makeComputePipelineState(function: function)
+    init(device: MTLDevice, name: String, constantValues: MTLFunctionConstantValues?) {
+        self.function = MetalFunction(device: device, name: name, constantValues: constantValues)
     }
     
     func encode(
         commandBuffer: MTLCommandBuffer,
         length: Int,
-        resources: [MTLResource]
+        buffers: [MTLBuffer],
+        textures: [MTLTexture],
+        textureArrays: [[MTLTexture]]
     ) {
-        let computeEncoder = commandBuffer.makeComputeCommandEncoder()!
-        computeEncoder.setComputePipelineState(computePipelineState)
-        for i in 0 ..< resources.count {
-            let resource = resources[i]
-            switch resource {
-            case let texture as MTLTexture:
-                computeEncoder.setTexture(texture, index: i)
-            case let buffer as MTLBuffer:
-                computeEncoder.setBuffer(buffer, offset: 0, index: i)
-            default:
-                fatalError("Unsupported MTLResource type \(resource)")
-            }
-        }
-        let grid = MTLSize(width: length, height: 1, depth: 1)
-        let threads = MTLSize(width: min(length, computePipelineState.maxTotalThreadsPerThreadgroup), height: 1, depth: 1)
-        computeEncoder.dispatchThreads(grid, threadsPerThreadgroup: threads)
-        computeEncoder.endEncoding()
+        let threads = min(length, function.maxTotalThreadsPerThreadgroup)
+        function.encode(
+            commandBuffer: commandBuffer,
+            grid: MTLSize(width: length, height: 1, depth: 1),
+            threads: MTLSize(width: threads, height: 1, depth: 1),
+            buffers: buffers,
+            textures: textures,
+            textureArrays: textureArrays
+        )
     }
 }
 
 
 final class MetalFunction2D {
+
+    let function: MetalFunction
     
-    let device: MTLDevice
-    let computePipelineState: MTLComputePipelineState
-    
-    init(device: MTLDevice, name: String, constantValues: MTLFunctionConstantValues) {
-        self.device = device
-        let library = device.makeDefaultLibrary()!
-        let function = try! library.makeFunction(name: name, constantValues: constantValues)
-        self.computePipelineState = try! device.makeComputePipelineState(function: function)
+    init(device: MTLDevice, name: String, constantValues: MTLFunctionConstantValues?) {
+        self.function = MetalFunction(device: device, name: name, constantValues: constantValues)
     }
-    
+
     func encode(
         commandBuffer: MTLCommandBuffer,
         width: Int,
         height: Int,
-        resources: [MTLResource]
+        buffers: [MTLBuffer],
+        textures: [MTLTexture],
+        textureArrays: [[MTLTexture]]
     ) {
-        let computeEncoder = commandBuffer.makeComputeCommandEncoder()!
-        computeEncoder.setComputePipelineState(computePipelineState)
-        for i in 0 ..< resources.count {
-            let resource = resources[i]
-            switch resource {
-            case let texture as MTLTexture:
-                computeEncoder.setTexture(texture, index: i)
-            case let buffer as MTLBuffer:
-                computeEncoder.setBuffer(buffer, offset: 0, index: i)
-            default:
-                fatalError("Unsupported MTLResource type \(resource)")
-            }
-        }
-        let grid = MTLSize(width: width, height: height, depth: 1)
-        let w = computePipelineState.threadExecutionWidth
-        let h = computePipelineState.maxTotalThreadsPerThreadgroup / w
-        let threads = MTLSize(width: w, height: h, depth: 1)
-        computeEncoder.dispatchThreads(grid, threadsPerThreadgroup: threads)
-        computeEncoder.endEncoding()
+        let w = function.threadExecutionWidth
+        let h = function.maxTotalThreadsPerThreadgroup / w
+        function.encode(
+            commandBuffer: commandBuffer,
+            grid: MTLSize(width: width, height: height, depth: 1),
+            threads: MTLSize(width: w, height: h, depth: 1),
+            buffers: buffers,
+            textures: textures,
+            textureArrays: textureArrays
+        )
     }
 }
 
 
-//final class MetalFunction2DParams<Params> {
-//
-//    let function: MetalFunction2D
-//    let parametersBuffer: MTLBuffer
-//
-//    init(device: MTLDevice, name: String, constants: MTLConst) {
-//        self.function = MetalFunction2D(device: device, name: name)
-//        self.parametersBuffer = device.makeBuffer(length: MemoryLayout<Params>.stride, options: [.hazardTrackingModeTracked])!
-//    }
-//
-//    func encode(
-//        commandBuffer: MTLCommandBuffer,
-//        width: Int,
-//        height: Int,
-//        parameters: Params,
-//        resources: [MTLResource]
-//    ) {
-//        let parametersPointer = parametersBuffer.contents().assumingMemoryBound(to: Params.self)
-//        parametersPointer[0] = parameters
-//
-//        let combinedResources = [parameters] + resources
-//        function.encode(
-//            commandBuffer: commandBuffer,
-//            width: width,
-//            height: height,
-//            resources: resources
-//        )
-//    }
-//}
+final class MetalFunction3D {
+    
+    let function: MetalFunction
+    
+    init(device: MTLDevice, name: String, constantValues: MTLFunctionConstantValues?) {
+        self.function = MetalFunction(device: device, name: name, constantValues: constantValues)
+    }
+
+    func encode(
+        commandBuffer: MTLCommandBuffer,
+        width: Int,
+        height: Int,
+        depth: Int,
+        buffers: [MTLBuffer],
+        textures: [MTLTexture],
+        textureArrays: [[MTLTexture]]
+    ) {
+        // Assume threadExecutionWidth is a square number, and
+        // maxTotalThreadsPerThreadgroup is divisible by threadExecutionWidth,
+        // otherwise we end up wasting threads.
+        let k = Int(sqrt(Float(function.threadExecutionWidth)))
+        let w = k
+        let h = k
+        let d = function.maxTotalThreadsPerThreadgroup / function.threadExecutionWidth;
+        function.encode(
+            commandBuffer: commandBuffer,
+            grid: MTLSize(width: width, height: height, depth: 1),
+            threads: MTLSize(width: w, height: h, depth: d),
+            buffers: buffers,
+            textures: textures,
+            textureArrays: textureArrays
+        )
+    }
+}

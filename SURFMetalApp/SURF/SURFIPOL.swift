@@ -193,7 +193,6 @@ final class SURFIPOL {
 
             // Compute Hessian and sign of Laplacian
             // For loop on intervals
-            logger.info("getKeypoints: Octave=\(octaveCounter) Computing Hessian")
             for intervalCounter in 0 ..< INTERVAL {
                 l = pow2 * (intervalCounter + 1) + 1 // the "L" in the article.
 
@@ -238,17 +237,11 @@ final class SURFIPOL {
             #warning("TODO: Separate hessian computation from keypoint detection")
             
             // Find keypoints
-            logger.info("getKeypoints: octave=\(octaveCounter): Finding keypoints")
-//            var x_: Float
-//            var y_: Float
-//            var s_: Float
-            
             // Detect keypoints
             var octaveKeypointCount = 0
             
             for intervalCounter in 1 ..< INTERVAL - 1 {
                 var intervalKeypointCount = 0
-                logger.info("getKeypoints: octave=\(octaveCounter): interval=\(intervalCounter): Finding keypoints")
 
                 l = (pow2 * (intervalCounter + 1) + 1)
                 // border points are removed

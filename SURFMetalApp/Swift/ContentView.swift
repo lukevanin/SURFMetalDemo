@@ -68,11 +68,7 @@ struct SURFCompareView: View {
                 .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
                 .brightness(-0.2)
             
-//                Rectangle()
-//                    .fill(.black.opacity(0.5))
-//                    .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
-            
-            SURFFeaturesView(features: targetFeatures, zoom: zoom, color: .cyan)
+            SURFFeaturesView(features: targetFeatures, zoom: zoom, color: .green)
                 .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
                 .blendMode(.plusLighter)
             
@@ -83,6 +79,7 @@ struct SURFCompareView: View {
         .frame(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom)
     }
 }
+
 
 private let colors: [Color] = [.red, .orange, .yellow, .green, .blue, .indigo, .purple]
 

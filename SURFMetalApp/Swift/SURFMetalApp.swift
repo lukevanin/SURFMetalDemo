@@ -177,8 +177,8 @@ struct SURFMetalApp: App {
     }
         
     private func makeHessianImages() -> [(index: Int, reference: CGImage, metal: CGImage)] {
-        let _ = lenaMetalSurf.getKeypoints(image: lenaMetalBitmap)
         let _ = lenaSurf.getKeypoints(image: lenaBitmap)
+        let _ = lenaMetalSurf.getKeypoints(image: lenaMetalBitmap)
         let metalImages = lenaMetalSurf.octaves
             .lazy
             .map { octave in

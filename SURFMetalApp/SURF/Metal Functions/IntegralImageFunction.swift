@@ -14,7 +14,11 @@ final class IntegralImageSumXFunction {
     private let function: MetalFunction1D
 
     init(device: MTLDevice) {
-        self.function = MetalFunction1D(device: device, name: "integralImageSumX")
+        self.function = MetalFunction1D(
+            device: device,
+            name: "integralImageSumX",
+            constantValues: nil
+        )
     }
     
     func encode(
@@ -29,7 +33,9 @@ final class IntegralImageSumXFunction {
         function.encode(
             commandBuffer: commandBuffer,
             length: targetTexture.height,
-            resources: [sourceTexture, targetTexture]
+            buffers: [],
+            textures: [sourceTexture, targetTexture],
+            textureArrays: []
         )
     }
 }
@@ -40,7 +46,11 @@ final class IntegralImageSumYFunction {
     private let function: MetalFunction1D
 
     init(device: MTLDevice) {
-        self.function = MetalFunction1D(device: device, name: "integralImageSumY")
+        self.function = MetalFunction1D(
+            device: device,
+            name: "integralImageSumY",
+            constantValues: nil
+        )
     }
     
     func encode(
@@ -55,7 +65,9 @@ final class IntegralImageSumYFunction {
         function.encode(
             commandBuffer: commandBuffer,
             length: targetTexture.width,
-            resources: [sourceTexture, targetTexture]
+            buffers: [],
+            textures: [sourceTexture, targetTexture],
+            textureArrays: []
         )
     }
 }

@@ -64,11 +64,13 @@ final class HessianFunction {
             commandBuffer: commandBuffer,
             width: configuration.sampleWidth,
             height: configuration.sampleHeight,
-            resources: [
+            buffers: [],
+            textures: [
                 integralImageInputTexture,
                 hessianOutputTexture,
                 laplacianOutputTexture
-            ]
+            ],
+            textureArrays: []
         )
     }
 }
