@@ -15,6 +15,8 @@
 		FC2B4D2129A8D329009100D2 /* Common.h in Sources */ = {isa = PBXBuildFile; fileRef = FC2B4D2029A8D329009100D2 /* Common.h */; };
 		FC2B4D2329A93C87009100D2 /* DescriptorsFunction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2B4D2229A93C87009100D2 /* DescriptorsFunction.swift */; };
 		FC2B4D2529A93E2E009100D2 /* DescriptorsFunction.metal in Sources */ = {isa = PBXBuildFile; fileRef = FC2B4D2429A93E2E009100D2 /* DescriptorsFunction.metal */; };
+		FC2B4D2729A94A7F009100D2 /* SymmetrizeImageFunction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2B4D2629A94A7F009100D2 /* SymmetrizeImageFunction.swift */; };
+		FC2B4D2929A94BB5009100D2 /* SymmetrizeFunction.metal in Sources */ = {isa = PBXBuildFile; fileRef = FC2B4D2829A94BB5009100D2 /* SymmetrizeFunction.metal */; };
 		FC673F04299B93ED001703A3 /* SURFMetalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC673F03299B93ED001703A3 /* SURFMetalApp.swift */; };
 		FC673F06299B93ED001703A3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC673F05299B93ED001703A3 /* ContentView.swift */; };
 		FC673F08299B93ED001703A3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FC673F07299B93ED001703A3 /* Assets.xcassets */; };
@@ -67,6 +69,8 @@
 		FC2B4D2029A8D329009100D2 /* Common.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Common.h; sourceTree = "<group>"; };
 		FC2B4D2229A93C87009100D2 /* DescriptorsFunction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DescriptorsFunction.swift; sourceTree = "<group>"; };
 		FC2B4D2429A93E2E009100D2 /* DescriptorsFunction.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = DescriptorsFunction.metal; sourceTree = "<group>"; };
+		FC2B4D2629A94A7F009100D2 /* SymmetrizeImageFunction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SymmetrizeImageFunction.swift; sourceTree = "<group>"; };
+		FC2B4D2829A94BB5009100D2 /* SymmetrizeFunction.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = SymmetrizeFunction.metal; sourceTree = "<group>"; };
 		FC673F00299B93ED001703A3 /* SURFMetalApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SURFMetalApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FC673F03299B93ED001703A3 /* SURFMetalApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SURFMetalApp.swift; sourceTree = "<group>"; };
 		FC673F05299B93ED001703A3 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -218,6 +222,8 @@
 			children = (
 				FCDB042529A61DFE00494CEE /* Shared.h */,
 				FC2B4D2029A8D329009100D2 /* Common.h */,
+				FC2B4D2629A94A7F009100D2 /* SymmetrizeImageFunction.swift */,
+				FC2B4D2829A94BB5009100D2 /* SymmetrizeFunction.metal */,
 				FCDB042129A61C4100494CEE /* IntegralImageFunction.swift */,
 				FCDB042329A61DEF00494CEE /* IntegralImage.metal */,
 				FCDB042F29A6440500494CEE /* HessianFunction.swift */,
@@ -337,6 +343,7 @@
 				FC673F17299BA329001703A3 /* Bitmap.swift in Sources */,
 				FC2B4D2529A93E2E009100D2 /* DescriptorsFunction.metal in Sources */,
 				FC673F25299CDEF1001703A3 /* BaySURFFile.swift in Sources */,
+				FC2B4D2729A94A7F009100D2 /* SymmetrizeImageFunction.swift in Sources */,
 				FC2B4D1F29A8D26C009100D2 /* InterpolateFunction.metal in Sources */,
 				FC673F19299BA5A9001703A3 /* IntegralImage.swift in Sources */,
 				FC673F1D299BABAA001703A3 /* FastHessian.swift in Sources */,
@@ -348,6 +355,7 @@
 				FC673F21299CCC67001703A3 /* Math.swift in Sources */,
 				FC673F2B299E557D001703A3 /* SURFIPOL.swift in Sources */,
 				FC2B4D2329A93C87009100D2 /* DescriptorsFunction.swift in Sources */,
+				FC2B4D2929A94BB5009100D2 /* SymmetrizeFunction.metal in Sources */,
 				FCDB042229A61C4100494CEE /* IntegralImageFunction.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

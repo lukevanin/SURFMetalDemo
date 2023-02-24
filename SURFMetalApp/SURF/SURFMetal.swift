@@ -249,9 +249,11 @@ final class SURFMetal {
     private let device: MTLDevice
     private let commandQueue: MTLCommandQueue
     
+    private let sourceImageTexture: MTLTexture
     private let symmetrizedImageTexture: MTLTexture
     private let integralImageTexture: MTLTexture
     
+    private let symmetrizeImageFunction: SymmetrizeImageFunction
     private let integralImageFunction: IntegralImageFunction
     
     private let integralImage: MetalIntegralImage
@@ -277,6 +279,21 @@ final class SURFMetal {
 
         let commandQueue = device.makeCommandQueue()!
         
+        let sourceImageTexture: MTLTexture = {
+            let descriptor = MTLTextureDescriptor.texture2DDescriptor(
+                pixelFormat: .r8Uint,
+                width: width,
+                height: height,
+                mipmapped: false
+            )
+            descriptor.usage = [.shaderRead, .shaderWrite]
+            descriptor.storageMode = .private
+            descriptor.hazardTrackingMode = .tracked
+            let texture = device.makeTexture(descriptor: descriptor)!
+            texture.label = "SymmetrizedImage"
+            return texture
+        }()
+
         let symmetrizedImageTexture: MTLTexture = {
             let descriptor = MTLTextureDescriptor.texture2DDescriptor(
                 pixelFormat: .r8Uint,
@@ -287,7 +304,6 @@ final class SURFMetal {
             descriptor.usage = [.shaderRead, .shaderWrite]
             descriptor.storageMode = .private
             descriptor.hazardTrackingMode = .tracked
-            descriptor.storageMode = .private
             let texture = device.makeTexture(descriptor: descriptor)!
             texture.label = "SymmetrizedImage"
             return texture
@@ -313,6 +329,11 @@ final class SURFMetal {
             width: integralImage.paddedWidth,
             height: integralImage.paddedHeight
         )
+        
+        let symmetrizeImageFunction = SymmetrizeImageFunction(
+            device: device,
+            padding: padding
+        )
 
         var octaves: [SURFMetalOctave] = []
         for octaveCounter in 0 ..< OCTAVE {
@@ -335,8 +356,10 @@ final class SURFMetal {
         
         self.device = device
         self.commandQueue = commandQueue
-        self.integralImageTexture = integralImageTexture
+        self.sourceImageTexture = sourceImageTexture
         self.symmetrizedImageTexture = symmetrizedImageTexture
+        self.integralImageTexture = integralImageTexture
+        self.symmetrizeImageFunction = symmetrizeImageFunction
         self.integralImageFunction = integralImageFunction
         self.width = width
         self.height = height
@@ -354,14 +377,14 @@ final class SURFMetal {
             print("Time: ", elapsedTime, "seconds", "/", framesPerSecond, "frames per second")
         }
         
-        let symmetrizedBitmap = image.symmetrized(padding: padding)
+//        let symmetrizedBitmap = image.symmetrized(padding: padding)
 
         capture("findKeypoints", commandQueue: commandQueue, capture: false) { commandBuffer in
             
             // Compute the integral image
             makeIntegralImage(
                 commandBuffer: commandBuffer,
-                symmetrizedBitmap: symmetrizedBitmap
+                bitmap: image
             )
             
             // Compute Hessians and of each sign of the Laplacian for each interval
@@ -399,11 +422,22 @@ final class SURFMetal {
         return output
     }
 
-    private func makeIntegralImage(commandBuffer: MTLCommandBuffer, symmetrizedBitmap: MetalBitmap) {
+    private func makeIntegralImage(commandBuffer: MTLCommandBuffer, bitmap: MetalBitmap) {
         logger.info("getKeypoints: Creating integral image: width=\(self.integralImage.paddedWidth) height=\(self.integralImage.paddedHeight) padding=\(self.integralImage.padding)")
         
-        symmetrizedBitmap.copyToTexture(
+//        symmetrizedBitmap.copyToTexture(
+//            commandBuffer: commandBuffer,
+//            targetTexture: symmetrizedImageTexture
+//        )
+
+        bitmap.copyToTexture(
             commandBuffer: commandBuffer,
+            targetTexture: sourceImageTexture
+        )
+        
+        symmetrizeImageFunction.encode(
+            commandBuffer: commandBuffer,
+            sourceTexture: sourceImageTexture,
             targetTexture: symmetrizedImageTexture
         )
         

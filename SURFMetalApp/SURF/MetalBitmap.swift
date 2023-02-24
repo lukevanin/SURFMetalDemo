@@ -78,22 +78,22 @@ final class MetalBitmap {
         contents.initialize(repeating: value, count: width * height)
     }
     
-    func halfImage() -> MetalBitmap {
-        let halfWidth = width / 2
-        let halfHeight = height / 2
-        let output = MetalBitmap(
-            device: device,
-            name: "\(name)-HalfImage",
-            width: halfWidth,
-            height: halfHeight
-        )
-        for y in 0 ..< halfHeight {
-            for x in 0 ..< halfWidth {
-                output[x, y] = self[x * 2, y * 2]
-            }
-        }
-        return output
-    }
+//    func halfImage() -> MetalBitmap {
+//        let halfWidth = width / 2
+//        let halfHeight = height / 2
+//        let output = MetalBitmap(
+//            device: device,
+//            name: "\(name)-HalfImage",
+//            width: halfWidth,
+//            height: halfHeight
+//        )
+//        for y in 0 ..< halfHeight {
+//            for x in 0 ..< halfWidth {
+//                output[x, y] = self[x * 2, y * 2]
+//            }
+//        }
+//        return output
+//    }
     
     func normalized() -> MetalBitmap {
         let output = MetalBitmap(
@@ -121,42 +121,6 @@ final class MetalBitmap {
             output.contents[i] = normalizedValue
         }
         
-        return output
-    }
-    
-    func symmetrized(padding: Int) -> MetalBitmap {
-        let output = MetalBitmap(
-            device: device,
-            name: "\(name)-Symmetrized",
-            width: width + (padding * 2),
-            height: height + (padding * 2)
-        )
-        
-        for i in -padding ..< width + padding {
-            for j in -padding ..< height + padding {
-                var i0 = i
-                var j0 = j
-                
-                if i0 < 0 {
-                    i0 = -i0
-                }
-                if j0 < 0 {
-                    j0 = -j0
-                }
-                
-                i0 = i0 % (2 * width)
-                j0 = j0 % (2 * height)
-                
-                if i0 >= width {
-                    i0 = 2 * width - i0 - 1
-                }
-                if j0 >= height {
-                    j0 = 2 * height - j0 - 1
-                }
-                
-                output[i + padding, j + padding] = self[i0, j0]
-            }
-        }
         return output
     }
 }
